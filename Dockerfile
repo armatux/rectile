@@ -2,7 +2,8 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# the lockfile is written by npm 11; the npm 10 bundled with node:22 misreads it
+RUN npm install -g npm@11 && npm ci
 
 # ---- build ----
 FROM node:22-alpine AS builder
