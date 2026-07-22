@@ -1,0 +1,168 @@
+import { relations } from "drizzle-orm";
+import {
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+export const projectStatus = pgEnum("project_status", [
+  "active",
+  "paused",
+  "idea",
+  "done",
+  "archived",
+]);
+
+export const featureStatus = pgEnum("feature_status", [
+  "planned",
+  "in_progress",
+  "built",
+]);
+
+export const projects = pgTable(
+  "projects",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description"),
+    status: projectStatus("status").notNull().default("active"),
+    category: text("category"),
+    priority: integer("priority").notNull().default(2),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastTouchedAt: timestamp("last_touched_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("projects_slug_idx").on(t.slug)],
+);
+
+export const features = pgTable(
+  "features",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    status: featureStatus("status").notNull().default("planned"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("features_project_idx").on(t.projectId)],
+);
+
+export const logEntries = pgTable(
+  "log_entries",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("log_entries_project_idx").on(t.projectId, t.createdAt)],
+);
+
+export const links = pgTable(
+  "links",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    url: text("url").notNull(),
+  },
+  (t) => [index("links_project_idx").on(t.projectId)],
+);
+
+export const tags = pgTable(
+  "tags",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#b39cf5"),
+  },
+  (t) => [uniqueIndex("tags_name_idx").on(t.name)],
+);
+
+export const projectTags = pgTable(
+  "project_tags",
+  {
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    tagId: integer("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.tagId] })],
+);
+
+export const projectsRelations = relations(projects, ({ many }) => ({
+  features: many(features),
+  logEntries: many(logEntries),
+  links: many(links),
+  projectTags: many(projectTags),
+}));
+
+export const featuresRelations = relations(features, ({ one }) => ({
+  project: one(projects, {
+    fields: [features.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const logEntriesRelations = relations(logEntries, ({ one }) => ({
+  project: one(projects, {
+    fields: [logEntries.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const linksRelations = relations(links, ({ one }) => ({
+  project: one(projects, {
+    fields: [links.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  projectTags: many(projectTags),
+}));
+
+export const projectTagsRelations = relations(projectTags, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectTags.projectId],
+    references: [projects.id],
+  }),
+  tag: one(tags, { fields: [projectTags.tagId], references: [tags.id] }),
+}));
+
+export type Project = typeof projects.$inferSelect;
+export type Feature = typeof features.$inferSelect;
+export type LogEntry = typeof logEntries.$inferSelect;
+export type Link = typeof links.$inferSelect;
+export type Tag = typeof tags.$inferSelect;
+
+export const PROJECT_STATUSES = projectStatus.enumValues;
+export const FEATURE_STATUSES = featureStatus.enumValues;

@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    container_name: rectile-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # discrete vars (not a URL) so passwords with ?&# need no encoding
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: rectile
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: rectile
+      API_TOKEN: ${API_TOKEN:?set API_TOKEN in .env}
+      RECTILE_SEED_DEMO: ${RECTILE_SEED_DEMO:-0}
+    ports:
+      # cloudflared on the same host connects to 127.0.0.1:3000;
+      # widen to "3000:3000" if the tunnel runs elsewhere on the LAN
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+  db:
+    image: postgres:16-alpine
+    container_name: rectile-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rectile
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: rectile
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rectile -d rectile"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
