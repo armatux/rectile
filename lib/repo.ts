@@ -7,6 +7,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   sql,
 } from "drizzle-orm";
@@ -26,8 +27,10 @@ import {
   type Link,
   type LogEntry,
   type Project,
+  type Reminder,
   type Tag,
 } from "@/db/schema";
+import { isRepeat, nextOccurrence } from "./recur";
 import { slugify } from "./slug";
 import type {
   FeatureCreateInput,
@@ -91,57 +94,144 @@ export type ReminderInput = {
   title: string;
   notes?: string;
   dueAt?: Date | null;
+  repeat?: string | null;
+  projectSlug?: string | null;
 };
 
 export type ReminderPatch = {
   title?: string;
   notes?: string | null;
   dueAt?: Date | null;
+  repeat?: string | null;
+  projectSlug?: string | null;
   done?: boolean;
 };
 
-export async function listReminders() {
-  return db
-    .select()
+export type ReminderWithProject = Reminder & {
+  projectSlug: string | null;
+  projectName: string | null;
+};
+
+async function resolveProjectId(slug: string): Promise<number> {
+  const p = await db.query.projects.findFirst({ where: eq(projects.slug, slug) });
+  if (!p) throw new NotFoundError(`no project ${slug}`);
+  return p.id;
+}
+
+const reminderJoin = {
+  reminder: reminders,
+  projectSlug: projects.slug,
+  projectName: projects.name,
+};
+
+function flattenReminder(row: {
+  reminder: Reminder;
+  projectSlug: string | null;
+  projectName: string | null;
+}): ReminderWithProject {
+  return { ...row.reminder, projectSlug: row.projectSlug, projectName: row.projectName };
+}
+
+export async function listReminders(): Promise<ReminderWithProject[]> {
+  const rows = await db
+    .select(reminderJoin)
     .from(reminders)
+    .leftJoin(projects, eq(reminders.projectId, projects.id))
     .orderBy(
       asc(reminders.done),
       sql`${reminders.dueAt} ASC NULLS LAST`,
       desc(reminders.createdAt),
     );
+  return rows.map(flattenReminder);
+}
+
+/** Open reminders due before `to` (and after `from` when given), oldest first. */
+export async function listOpenRemindersDue(
+  to: Date,
+  from?: Date,
+): Promise<ReminderWithProject[]> {
+  const conds = [
+    eq(reminders.done, false),
+    isNotNull(reminders.dueAt),
+    lte(reminders.dueAt, to),
+  ];
+  if (from) conds.push(gte(reminders.dueAt, from));
+  const rows = await db
+    .select(reminderJoin)
+    .from(reminders)
+    .leftJoin(projects, eq(reminders.projectId, projects.id))
+    .where(and(...conds))
+    .orderBy(asc(reminders.dueAt));
+  return rows.map(flattenReminder);
+}
+
+export async function listProjectReminders(projectId: number) {
+  return db
+    .select()
+    .from(reminders)
+    .where(and(eq(reminders.projectId, projectId), eq(reminders.done, false)))
+    .orderBy(sql`${reminders.dueAt} ASC NULLS LAST`, desc(reminders.createdAt));
+}
+
+export async function listProjectSlugs() {
+  return db
+    .select({ id: projects.id, slug: projects.slug, name: projects.name })
+    .from(projects)
+    .orderBy(asc(projects.name));
 }
 
 export async function addReminder(input: ReminderInput) {
+  const projectId = input.projectSlug
+    ? await resolveProjectId(input.projectSlug)
+    : null;
   const [row] = await db
     .insert(reminders)
     .values({
       title: input.title,
       notes: input.notes ?? null,
       dueAt: input.dueAt ?? null,
+      repeat: input.repeat ?? null,
+      projectId,
     })
     .returning();
   return row;
 }
 
 export async function updateReminder(id: number, patch: ReminderPatch) {
+  const [row] = await db.select().from(reminders).where(eq(reminders.id, id));
+  if (!row) throw new NotFoundError(`no reminder ${id}`);
   const set: Partial<typeof reminders.$inferInsert> = {};
   if (patch.title !== undefined) set.title = patch.title;
   if (patch.notes !== undefined) set.notes = patch.notes;
+  if (patch.repeat !== undefined) set.repeat = patch.repeat;
+  if (patch.projectSlug !== undefined) {
+    set.projectId =
+      patch.projectSlug === null ? null : await resolveProjectId(patch.projectSlug);
+  }
   if (patch.dueAt !== undefined) {
     set.dueAt = patch.dueAt;
     set.notifiedAt = null; // deadline changed — re-arm the push
   }
   if (patch.done !== undefined) {
-    set.done = patch.done;
-    set.completedAt = patch.done ? now() : null;
-    if (!patch.done) set.notifiedAt = null;
+    const repeat = patch.repeat !== undefined ? patch.repeat : row.repeat;
+    const anchor = patch.dueAt !== undefined ? patch.dueAt : row.dueAt;
+    if (patch.done && anchor && isRepeat(repeat)) {
+      // recurring: completing an occurrence advances the deadline instead
+      set.done = false;
+      set.completedAt = now();
+      set.dueAt = nextOccurrence(anchor, repeat, now());
+      set.notifiedAt = null;
+    } else {
+      set.done = patch.done;
+      set.completedAt = patch.done ? now() : null;
+      if (!patch.done) set.notifiedAt = null;
+    }
   }
   const res = await db
     .update(reminders)
     .set(set)
     .where(eq(reminders.id, id))
     .returning();
-  if (!res.length) throw new NotFoundError(`no reminder ${id}`);
   return res[0];
 }
 
@@ -171,6 +261,131 @@ export async function markRemindersNotified(ids: number[]): Promise<void> {
     .update(reminders)
     .set({ notifiedAt: now() })
     .where(inArray(reminders.id, ids));
+}
+
+/* -------------------------------- weekly review ------------------------------- */
+
+export type WeeklyReview = {
+  shipped: {
+    id: number;
+    title: string;
+    completedAt: Date;
+    projectName: string;
+    projectSlug: string;
+  }[];
+  remindersDone: Reminder[];
+  logCounts: { projectName: string; projectSlug: string; count: number }[];
+  wentStale: { name: string; slug: string; lastTouchedAt: Date }[];
+  eventsCount: number;
+  activeDays: string[]; // ISO dates with activity inside the window
+  streak: number; // consecutive active days ending today (or yesterday)
+};
+
+export async function getWeeklyReview(start: Date, end: Date): Promise<WeeklyReview> {
+  const activitySince = new Date(Date.now() - 90 * 86_400_000);
+  const [shipped, remindersDone, logCounts, wentStale, eventRows, logDays, featDays, remDays] =
+    await Promise.all([
+      db
+        .select({
+          id: features.id,
+          title: features.title,
+          completedAt: features.completedAt,
+          projectName: projects.name,
+          projectSlug: projects.slug,
+        })
+        .from(features)
+        .innerJoin(projects, eq(features.projectId, projects.id))
+        .where(
+          and(
+            isNotNull(features.completedAt),
+            gte(features.completedAt, start),
+            lt(features.completedAt, end),
+          ),
+        )
+        .orderBy(desc(features.completedAt)),
+      db
+        .select()
+        .from(reminders)
+        .where(
+          and(
+            isNotNull(reminders.completedAt),
+            gte(reminders.completedAt, start),
+            lt(reminders.completedAt, end),
+          ),
+        )
+        .orderBy(desc(reminders.completedAt)),
+      db
+        .select({
+          projectName: projects.name,
+          projectSlug: projects.slug,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(logEntries)
+        .innerJoin(projects, eq(logEntries.projectId, projects.id))
+        .where(and(gte(logEntries.createdAt, start), lt(logEntries.createdAt, end)))
+        .groupBy(projects.name, projects.slug)
+        .orderBy(sql`count(*) desc`),
+      db
+        .select({
+          name: projects.name,
+          slug: projects.slug,
+          lastTouchedAt: projects.lastTouchedAt,
+        })
+        .from(projects)
+        .where(
+          and(
+            gte(projects.lastTouchedAt, new Date(start.getTime() - 7 * 86_400_000)),
+            lt(projects.lastTouchedAt, start),
+            inArray(projects.status, ["active", "paused", "idea"]),
+          ),
+        )
+        .orderBy(asc(projects.lastTouchedAt)),
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(events)
+        .where(and(gte(events.startsAt, start), lt(events.startsAt, end))),
+      db
+        .select({ t: logEntries.createdAt })
+        .from(logEntries)
+        .where(gte(logEntries.createdAt, activitySince)),
+      db
+        .select({ t: features.completedAt })
+        .from(features)
+        .where(and(isNotNull(features.completedAt), gte(features.completedAt, activitySince))),
+      db
+        .select({ t: reminders.completedAt })
+        .from(reminders)
+        .where(and(isNotNull(reminders.completedAt), gte(reminders.completedAt, activitySince))),
+    ]);
+
+  const daySet = new Set(
+    [...logDays, ...featDays, ...remDays]
+      .filter((x): x is { t: Date } => x.t !== null)
+      .map((x) => x.t.toISOString().slice(0, 10)),
+  );
+  const startKey = start.toISOString().slice(0, 10);
+  const endKey = end.toISOString().slice(0, 10);
+  const activeDays = [...daySet].filter((d) => d >= startKey && d < endKey).sort();
+
+  let streak = 0;
+  const cursor = new Date();
+  if (!daySet.has(cursor.toISOString().slice(0, 10))) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1); // today isn't over yet
+  }
+  while (daySet.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  return {
+    shipped: shipped.filter((s): s is typeof s & { completedAt: Date } => s.completedAt !== null),
+    remindersDone,
+    logCounts,
+    wentStale,
+    eventsCount: eventRows[0]?.c ?? 0,
+    activeDays,
+    streak,
+  };
 }
 
 /* ----------------------------- push subscriptions ----------------------------- */

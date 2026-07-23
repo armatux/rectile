@@ -2,7 +2,7 @@ import { SectionHeader } from "@/components/hud";
 import { CalendarView, type CalEvent } from "@/components/calendar/CalendarView";
 import { SubscriptionsPanel, type CalSub } from "@/components/calendar/SubscriptionsPanel";
 import { parseIcs } from "@/lib/ics";
-import { getKv, listEvents } from "@/lib/repo";
+import { getKv, listEvents, listOpenRemindersDue } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "calendar" };
@@ -29,9 +29,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: SP 
   end.setUTCDate(last.getUTCDate() + (7 - ((last.getUTCDay() + 6) % 7)) % 7);
   end.setUTCHours(23, 59, 59);
 
-  const [local, subsEntry] = await Promise.all([
+  const [local, subsEntry, deadlines] = await Promise.all([
     listEvents(start, end),
     getKv<CalSub[]>("calendar_subscriptions"),
+    listOpenRemindersDue(end, start),
   ]);
   const subs = subsEntry?.value ?? [];
 
@@ -44,6 +45,18 @@ export default async function CalendarPage({ searchParams }: { searchParams: SP 
     allDay: e.allDay,
     source: "local",
   }));
+
+  for (const r of deadlines) {
+    if (!r.dueAt) continue;
+    events.push({
+      uid: `rem-${r.id}`,
+      title: `⚑ ${r.title}`,
+      startsAt: r.dueAt.toISOString(),
+      allDay: false,
+      source: "reminder",
+      subLabel: "due",
+    });
+  }
 
   const subErrors: string[] = [];
   await Promise.all(

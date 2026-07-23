@@ -94,14 +94,43 @@ self.addEventListener("push", (event) => {
       tag: data.tag,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      data: { url: data.url || "/reminders" },
+      data: { url: data.url || "/reminders", reminderId: data.reminderId },
+      // action buttons show on Android/desktop; iOS ignores them (tap-through only)
+      actions: data.reminderId
+        ? [
+            { action: "snooze-1h", title: "+1 HOUR" },
+            { action: "snooze-day", title: "TOMORROW 9:00" },
+          ]
+        : [],
     }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/reminders";
+  const data = event.notification.data || {};
+
+  // snooze actions: device-local new deadline, server re-arms the push
+  if (event.action && event.action.startsWith("snooze") && data.reminderId) {
+    let until;
+    if (event.action === "snooze-1h") {
+      until = new Date(Date.now() + 3600 * 1000);
+    } else {
+      until = new Date();
+      until.setDate(until.getDate() + 1);
+      until.setHours(9, 0, 0, 0);
+    }
+    event.waitUntil(
+      fetch("/push/snooze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Rectile-Push": "1" },
+        body: JSON.stringify({ id: data.reminderId, until: until.toISOString() }),
+      }).catch(() => {}),
+    );
+    return;
+  }
+
+  const url = data.url || "/reminders";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
       for (const w of wins) {

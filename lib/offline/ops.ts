@@ -65,6 +65,8 @@ export const opSchema = z.discriminatedUnion("kind", [
     title: z.string().trim().min(1).max(300),
     notes: z.string().max(5_000).optional(),
     dueAt: z.string().optional(), // ISO — Dates don't survive IndexedDB→JSON round-trips
+    repeat: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
+    projectSlug: z.string().trim().min(1).max(240).optional(),
     tempId: z.number().int().negative().optional(),
   }),
   z.object({ kind: z.literal("reminder.toggle"), id, done: z.boolean() }),

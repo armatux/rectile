@@ -147,6 +147,11 @@ export const reminders = pgTable(
     title: text("title").notNull(),
     notes: text("notes"),
     dueAt: timestamp("due_at", { withTimezone: true }),
+    /** cadence only ("daily"|"weekly"|"monthly"|"yearly") — anchor is dueAt */
+    repeat: text("repeat"),
+    projectId: integer("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
     done: boolean("done").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -154,7 +159,10 @@ export const reminders = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     notifiedAt: timestamp("notified_at", { withTimezone: true }),
   },
-  (t) => [index("reminders_due_idx").on(t.done, t.dueAt)],
+  (t) => [
+    index("reminders_due_idx").on(t.done, t.dueAt),
+    index("reminders_project_idx").on(t.projectId),
+  ],
 );
 
 /** Web Push subscriptions — one row per browser/device that enabled alerts. */

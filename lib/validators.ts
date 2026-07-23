@@ -58,10 +58,14 @@ export const eventCreateSchema = z.object({
   allDay: z.boolean().optional(),
 });
 
+export const repeatSchema = z.enum(["daily", "weekly", "monthly", "yearly"]);
+
 export const reminderCreateSchema = z.object({
   title: z.string().trim().min(1).max(300),
   notes: z.string().max(5_000).optional(),
   dueAt: z.coerce.date().optional(),
+  repeat: repeatSchema.optional(),
+  projectSlug: z.string().trim().min(1).max(240).optional(),
 });
 
 export const reminderUpdateSchema = z
@@ -69,6 +73,8 @@ export const reminderUpdateSchema = z
     title: z.string().trim().min(1).max(300),
     notes: z.string().max(5_000).nullable(),
     dueAt: z.coerce.date().nullable(),
+    repeat: repeatSchema.nullable(),
+    projectSlug: z.string().trim().min(1).max(240).nullable(),
     done: z.boolean(),
   })
   .partial();

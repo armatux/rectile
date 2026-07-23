@@ -13,7 +13,7 @@ export type CalEvent = {
   startsAt: string;
   endsAt?: string;
   allDay: boolean;
-  source: "local" | "ics";
+  source: "local" | "ics" | "reminder";
   subLabel?: string;
 };
 
@@ -28,6 +28,12 @@ function shiftMonth(monthISO: string, by: number): string {
   const [y, m] = monthISO.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + by, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function eventColor(e: CalEvent, localColor: string): string {
+  if (e.source === "ics") return "var(--color-cyan)";
+  if (e.source === "reminder") return "var(--color-warn)";
+  return localColor;
 }
 
 function fmtTime(iso: string): string {
@@ -195,9 +201,7 @@ export function CalendarView({
                   <span
                     key={i}
                     className="truncate text-[8.5px] leading-tight"
-                    style={{
-                      color: e.source === "ics" ? "var(--color-cyan)" : "var(--color-accent)",
-                    }}
+                    style={{ color: eventColor(e, "var(--color-accent)") }}
                   >
                     {e.allDay ? "" : `${fmtTime(e.startsAt)} `}
                     {e.title}
@@ -233,7 +237,7 @@ export function CalendarView({
               </span>
               <span
                 className="min-w-0 flex-1 truncate text-[11.5px]"
-                style={{ color: e.source === "ics" ? "var(--color-cyan)" : "var(--color-ink)" }}
+                style={{ color: eventColor(e, "var(--color-ink)") }}
                 title={e.notes}
               >
                 {e.title}
@@ -307,7 +311,7 @@ export function CalendarView({
               </span>
               <span
                 className="min-w-0 flex-1 truncate text-[11px]"
-                style={{ color: e.source === "ics" ? "var(--color-cyan)" : "var(--color-ink)" }}
+                style={{ color: eventColor(e, "var(--color-ink)") }}
               >
                 {e.title}
               </span>

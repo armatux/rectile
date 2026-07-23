@@ -135,6 +135,8 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
         title: op.title,
         notes: op.notes,
         dueAt: op.dueAt ? new Date(op.dueAt) : null,
+        repeat: op.repeat,
+        projectSlug: op.projectSlug,
       });
       if (op.tempId) ids.reminder.set(op.tempId, r.id);
       return;

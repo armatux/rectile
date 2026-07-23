@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LogFeed } from "@/components/LogFeed";
 import { RoadmapBoard } from "@/components/RoadmapBoard";
@@ -15,6 +16,7 @@ import {
 } from "@/components/hud";
 import {
   getProjectDetail,
+  listProjectReminders,
   listTags,
   NotFoundError,
   type ProjectDetail,
@@ -42,7 +44,10 @@ export default async function ProjectPage({ params }: { params: Params }) {
     if (err instanceof NotFoundError) notFound();
     throw err;
   }
-  const allTags = await listTags();
+  const [allTags, reminders] = await Promise.all([
+    listTags(),
+    listProjectReminders(project.id),
+  ]);
 
   const featureDTOs = project.features.map((f) => ({
     id: f.id,
@@ -113,6 +118,48 @@ export default async function ProjectPage({ params }: { params: Params }) {
             all={allTags.map((t) => t.name)}
           />
           <LinksPanel slug={project.slug} links={project.links} />
+          {reminders.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <SectionHeader
+                label="REMINDERS"
+                sub={`OPEN.${String(reminders.length).padStart(2, "0")}`}
+              />
+              <div className="hud-panel flex flex-col gap-1 p-3">
+                {reminders.map((r) => {
+                  const overdue = r.dueAt !== null && r.dueAt < new Date();
+                  return (
+                    <Link
+                      key={r.id}
+                      href="/reminders"
+                      className="flex min-h-[32px] items-center gap-2 text-[11px] text-ink hover:text-bright"
+                    >
+                      <span className="text-[10px]" aria-hidden>
+                        {r.repeat ? "↻" : "▹"}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{r.title}</span>
+                      {r.dueAt && (
+                        <span
+                          className="flex-none text-[9px] font-bold tabular-nums"
+                          style={{
+                            color: overdue
+                              ? "var(--color-danger)"
+                              : "var(--color-accent)",
+                          }}
+                        >
+                          {r.dueAt
+                            .toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                            })
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>

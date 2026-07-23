@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { parseReminderText } from "@/lib/nl";
 import { submitOp } from "@/lib/offline/queue";
+import { repeatLabel } from "@/lib/recur";
 import { PushToggle } from "./PushToggle";
 
 export type Rem = {
@@ -10,6 +13,8 @@ export type Rem = {
   title: string;
   notes?: string;
   dueAt?: string; // ISO
+  repeat?: string;
+  projectSlug?: string;
   done: boolean;
 };
 
@@ -26,9 +31,11 @@ function fmtDue(iso: string): string {
 
 export function RemindersView({
   reminders: serverReminders,
+  projects,
   vapidKey,
 }: {
   reminders: Rem[];
+  projects: { slug: string; name: string }[];
   vapidKey: string | null;
 }) {
   const router = useRouter();
@@ -39,6 +46,12 @@ export function RemindersView({
   const [showDone, setShowDone] = useState(false);
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
+
+  const slugs = useMemo(() => projects.map((p) => p.slug), [projects]);
+  const parsed = useMemo(
+    () => (title.trim() ? parseReminderText(title, new Date(), slugs) : null),
+    [title, slugs],
+  );
 
   const reminders = useMemo(
     () =>
@@ -80,16 +93,35 @@ export function RemindersView({
   const doneItems = useMemo(() => reminders.filter((r) => r.done), [reminders]);
 
   function add() {
-    const t = title.trim();
-    if (!t) return;
-    const dueAt = due ? new Date(due).toISOString() : undefined;
-    const temp: Rem = { id: -Date.now(), title: t, dueAt, done: false };
+    if (!title.trim()) return;
+    const p = parseReminderText(title, new Date(), slugs);
+    // the manual datetime picker beats the parsed date
+    const dueAt = due
+      ? new Date(due).toISOString()
+      : p.dueAt
+        ? p.dueAt.toISOString()
+        : undefined;
+    const temp: Rem = {
+      id: -Date.now(),
+      title: p.title,
+      dueAt,
+      repeat: p.repeat,
+      projectSlug: p.projectSlug,
+      done: false,
+    };
     setLocalAdds((ls) => [...ls, temp]);
     setTitle("");
     setDue("");
     startTransition(async () => {
       if (
-        await submitOp({ kind: "reminder.add", title: t, dueAt, tempId: temp.id })
+        await submitOp({
+          kind: "reminder.add",
+          title: p.title,
+          dueAt,
+          repeat: p.repeat,
+          projectSlug: p.projectSlug,
+          tempId: temp.id,
+        })
       ) {
         router.refresh();
         setLocalAdds((ls) => ls.filter((x) => x.id !== temp.id));
@@ -99,7 +131,8 @@ export function RemindersView({
 
   function toggle(r: Rem) {
     const done = !r.done;
-    setToggled((m) => new Map(m).set(r.id, done));
+    // recurring reminders never park in DONE — the server advances the date
+    if (!r.repeat) setToggled((m) => new Map(m).set(r.id, done));
     startTransition(async () => {
       if (await submitOp({ kind: "reminder.toggle", id: r.id, done })) {
         router.refresh();
@@ -124,6 +157,56 @@ export function RemindersView({
 
   const nowISO = new Date().toISOString();
 
+  function Row({ r }: { r: Rem }) {
+    return (
+      <div className="group flex min-h-[48px] items-center gap-3 border-b border-line/60">
+        <button
+          onClick={() => toggle(r)}
+          className="flex h-8 w-8 flex-none items-center justify-center border border-line text-[11px] text-ink/40 transition-colors hover:border-line-strong hover:text-accent"
+          aria-label={`mark ${r.title} done`}
+        >
+          {r.repeat ? "↻" : " "}
+        </button>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-[12px] text-bright">
+            {r.title}
+            {r.projectSlug && (
+              <Link
+                href={`/p/${r.projectSlug}`}
+                className="ml-2 text-[9px] font-bold tracking-[0.12em] text-accent/70 hover:text-accent"
+              >
+                #{r.projectSlug}
+              </Link>
+            )}
+          </span>
+          {(r.notes || r.repeat) && (
+            <span className="block truncate text-[10px] text-ink/45">
+              {r.repeat && (
+                <span className="mr-2 text-cyan/80">{repeatLabel(r.repeat)}</span>
+              )}
+              {r.notes}
+            </span>
+          )}
+        </div>
+        {r.dueAt && (
+          <span
+            className="flex-none text-[9.5px] font-bold tracking-[0.08em] tabular-nums"
+            style={{ color: dueColor(r, nowISO) }}
+          >
+            {fmtDue(r.dueAt)}
+          </span>
+        )}
+        <button
+          onClick={() => remove(r.id)}
+          className="h-8 w-8 flex-none text-[12px] text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
+          aria-label={`delete ${r.title}`}
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
       <section className="hud-panel flex flex-col gap-3 p-4">
@@ -138,7 +221,7 @@ export function RemindersView({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="+ reminder"
+            placeholder="+ reminder — try: pay rent friday 18:00 every month #slug"
             className="min-h-[42px] w-full min-w-0 flex-1 border border-line bg-panel/70 px-2.5 text-[11.5px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none sm:w-auto"
           />
           <input
@@ -146,7 +229,7 @@ export function RemindersView({
             value={due}
             onChange={(e) => setDue(e.target.value)}
             className="min-h-[42px] flex-none border border-line bg-panel/70 px-2 text-[11px] text-bright focus:border-line-strong focus:outline-none [color-scheme:dark]"
-            aria-label="deadline (optional)"
+            aria-label="deadline (optional, overrides parsed)"
           />
           <button
             type="submit"
@@ -155,6 +238,22 @@ export function RemindersView({
             ADD
           </button>
         </form>
+        {/* live parse preview */}
+        {parsed && (parsed.dueAt || parsed.repeat || parsed.projectSlug) && !due && (
+          <p className="-mt-1 text-[9.5px] tracking-[0.1em] text-ink/45">
+            <span className="text-accent">→ </span>
+            {parsed.title}
+            {parsed.dueAt && (
+              <span className="ml-2 text-bright">{fmtDue(parsed.dueAt.toISOString())}</span>
+            )}
+            {parsed.repeat && (
+              <span className="ml-2 text-cyan/80">{repeatLabel(parsed.repeat)}</span>
+            )}
+            {parsed.projectSlug && (
+              <span className="ml-2 text-accent/80">#{parsed.projectSlug}</span>
+            )}
+          </p>
+        )}
 
         {/* open buckets */}
         {buckets.every((b) => b.items.length === 0) && (
@@ -173,43 +272,7 @@ export function RemindersView({
                   {b.label} · {String(b.items.length).padStart(2, "0")}
                 </span>
                 {b.items.map((r) => (
-                  <div
-                    key={r.id}
-                    className="group flex min-h-[48px] items-center gap-3 border-b border-line/60"
-                  >
-                    <button
-                      onClick={() => toggle(r)}
-                      className="flex h-8 w-8 flex-none items-center justify-center border border-line text-[11px] text-ink/40 transition-colors hover:border-line-strong hover:text-accent"
-                      aria-label={`mark ${r.title} done`}
-                    >
-                      {" "}
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <span className="block truncate text-[12px] text-bright">
-                        {r.title}
-                      </span>
-                      {r.notes && (
-                        <span className="block truncate text-[10px] text-ink/45">
-                          {r.notes}
-                        </span>
-                      )}
-                    </div>
-                    {r.dueAt && (
-                      <span
-                        className="flex-none text-[9.5px] font-bold tracking-[0.08em] tabular-nums"
-                        style={{ color: dueColor(r, nowISO) }}
-                      >
-                        {fmtDue(r.dueAt)}
-                      </span>
-                    )}
-                    <button
-                      onClick={() => remove(r.id)}
-                      className="h-8 w-8 flex-none text-[12px] text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
-                      aria-label={`delete ${r.title}`}
-                    >
-                      ×
-                    </button>
-                  </div>
+                  <Row key={r.id} r={r} />
                 ))}
               </div>
             ),
@@ -259,9 +322,18 @@ export function RemindersView({
         <p className="text-[10px] leading-relaxed tracking-[0.06em] text-ink/50">
           reminders with a deadline fire a push notification on every device
           that enabled alerts — including iPhone/iPad (iOS 16.4+, app must be
-          added to the home screen first).
+          added to the home screen first). android/desktop notifications carry
+          +1H / TOMORROW snooze buttons. a daily brief lands at 08:00.
         </p>
         <PushToggle vapidKey={vapidKey} />
+        <span className="hud-sublabel pt-2">QUICK-ADD SYNTAX</span>
+        <p className="text-[10px] leading-relaxed tracking-[0.06em] text-ink/40">
+          dates: tomorrow · friday · 15.9. · 2026-08-01 · in 3 days · tonight
+          <br />
+          times: 18:00 · 6pm · 8 uhr — repeat: every monday · daily · monthly
+          <br />
+          project: #slug — german works too (morgen, jeden montag, täglich)
+        </p>
       </section>
     </div>
   );

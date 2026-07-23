@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
-  return {
+  const base: MetadataRoute.Manifest = {
     name: "rectile",
     short_name: "rectile",
     description: "Self-hosted project operations terminal",
@@ -22,4 +22,14 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
   };
+  // Web Share Target (Android/Chromium installed PWA; iOS Safari lacks it):
+  // sharing text/URLs into the app lands on /share as query params.
+  return {
+    ...base,
+    share_target: {
+      action: "/share",
+      method: "GET",
+      params: { title: "title", text: "text", url: "url" },
+    },
+  } as MetadataRoute.Manifest;
 }

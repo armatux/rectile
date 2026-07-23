@@ -1,14 +1,14 @@
 import { SectionHeader } from "@/components/hud";
 import { RemindersView } from "@/components/reminders/RemindersView";
 import { vapidPublicKey } from "@/lib/push";
-import { listReminders } from "@/lib/repo";
+import { listProjectSlugs, listReminders } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "reminders" };
 
 export default async function RemindersPage() {
-  const all = await listReminders();
+  const [all, projects] = await Promise.all([listReminders(), listProjectSlugs()]);
   const open = all.filter((r) => !r.done).length;
 
   return (
@@ -23,8 +23,11 @@ export default async function RemindersPage() {
           title: r.title,
           notes: r.notes ?? undefined,
           dueAt: r.dueAt?.toISOString(),
+          repeat: r.repeat ?? undefined,
+          projectSlug: r.projectSlug ?? undefined,
           done: r.done,
         }))}
+        projects={projects.map((p) => ({ slug: p.slug, name: p.name }))}
         vapidKey={vapidPublicKey()}
       />
     </div>
