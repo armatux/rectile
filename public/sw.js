@@ -90,21 +90,26 @@ self.addEventListener("fetch", (event) => {
   // navigations: network-first so data is always fresh. Cache under the bare
   // pathname and match with ignoreVary — Next.js sends `Vary: rsc, ...` which
   // would otherwise make cached pages unmatchable for some navigations.
+  // A dead origin behind Cloudflare is NOT a fetch error: CF answers with its
+  // own 5xx error page, so status must gate both caching and the fallback.
   if (req.mode === "navigate") {
+    const fromCache = () =>
+      caches
+        .match(url.pathname, { ignoreVary: true })
+        .then((hit) => hit || caches.match(req, { ignoreVary: true, ignoreSearch: true }))
+        .then((hit) => hit || caches.match("/offline", { ignoreVary: true }));
+
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(url.pathname, copy));
+          if (res.status >= 500) return fromCache().then((hit) => hit || res);
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(VERSION).then((c) => c.put(url.pathname, copy));
+          }
           return res;
         })
-        .catch(() =>
-          caches
-            .match(url.pathname, { ignoreVary: true })
-            .then((hit) => hit || caches.match(req, { ignoreVary: true, ignoreSearch: true }))
-            .then((hit) => hit || caches.match("/offline", { ignoreVary: true }))
-            .then((hit) => hit || Response.error()),
-        ),
+        .catch(() => fromCache().then((hit) => hit || Response.error())),
     );
     return;
   }
@@ -121,8 +126,10 @@ self.addEventListener("fetch", (event) => {
         (hit) =>
           hit ||
           fetch(req).then((res) => {
-            const copy = res.clone();
-            caches.open(VERSION).then((c) => c.put(req, copy));
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(VERSION).then((c) => c.put(req, copy));
+            }
             return res;
           }),
       ),
@@ -130,12 +137,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // default: network with cached fallback
+  // default: network with cached fallback (5xx = origin down, see above)
   event.respondWith(
     fetch(req)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(VERSION).then((c) => c.put(req, copy));
+        if (res.status >= 500)
+          return caches.match(req).then((hit) => hit || res);
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(VERSION).then((c) => c.put(req, copy));
+        }
         return res;
       })
       .catch(() => caches.match(req).then((hit) => hit || Response.error())),
