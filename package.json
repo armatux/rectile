@@ -13,6 +13,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-rust": "^6.0.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/legacy-modes": "^6.5.3",
+    "codemirror": "^6.0.2",
     "drizzle-orm": "^0.45.2",
     "marked": "^18.0.7",
     "mcp-handler": "^1.1.0",

@@ -55,11 +55,8 @@ function ModuleChip({ m }: { m: SkillModule }) {
     state === "locked" && m.requires.length
       ? ` · locked, needs ${m.requires.join(", ")}`
       : "";
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 border px-1.5 py-1 text-[9.5px] tracking-[0.1em] ${MODULE_STYLE[state]}`}
-      title={`${m.id} — ${m.title} (${m.done}/${m.total})${hint}`}
-    >
+  const inner = (
+    <>
       <span
         className={state === "complete" ? "text-accent" : ""}
         aria-hidden
@@ -77,7 +74,25 @@ function ModuleChip({ m }: { m: SkillModule }) {
           ★
         </span>
       )}
-    </span>
+    </>
+  );
+  const cls = `inline-flex items-center gap-1.5 border px-1.5 py-1 text-[9.5px] tracking-[0.1em] ${MODULE_STYLE[state]}`;
+  const title = `${m.id} — ${m.title} (${m.done}/${m.total})${hint}`;
+  if (state === "locked") {
+    return (
+      <span className={cls} title={title}>
+        {inner}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={`/cpptutor/module/${m.id}`}
+      className={`${cls} transition-colors hover:border-accent`}
+      title={`${title} — open the lesson console`}
+    >
+      {inner}
+    </Link>
   );
 }
 
@@ -301,13 +316,29 @@ export default async function CpptutorPage() {
               NEXT ▸
             </span>
             {data.next_lesson ? (
-              <>
-                {data.next_lesson}
-                <span className="text-ink/45">
-                  {" "}
-                  · {data.next_module} · {data.next_track}
-                </span>
-              </>
+              data.next_id ? (
+                <Link
+                  href={`/cpptutor/lesson/${data.next_id}`}
+                  className="transition-colors hover:text-accent"
+                >
+                  {data.next_lesson}
+                  <span className="text-ink/45">
+                    {" "}
+                    · {data.next_module} · {data.next_track}
+                  </span>
+                  <span className="ml-2 text-[9px] font-bold tracking-[0.22em] text-accent">
+                    STUDY HERE ▸
+                  </span>
+                </Link>
+              ) : (
+                <>
+                  {data.next_lesson}
+                  <span className="text-ink/45">
+                    {" "}
+                    · {data.next_module} · {data.next_track}
+                  </span>
+                </>
+              )
             ) : (
               "ALL LESSONS COMPLETE"
             )}
