@@ -5,15 +5,22 @@ import { useState } from "react";
 const inputCls =
   "min-h-[42px] w-full border border-line bg-panel/70 px-3 text-[11.5px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none";
 
+export type ComposerAccount = { id: string; label: string; user: string };
+
 export function Composer({
+  accounts,
+  defaultAccount,
   initialTo = "",
   initialSubject = "",
   inReplyTo,
 }: {
+  accounts: ComposerAccount[];
+  defaultAccount: string;
   initialTo?: string;
   initialSubject?: string;
   inReplyTo?: string;
 }) {
+  const [account, setAccount] = useState(defaultAccount);
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
   const [body, setBody] = useState("");
@@ -27,7 +34,7 @@ export function Composer({
       const res = await fetch("/mail/api/send", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Rectile-Mail": "1" },
-        body: JSON.stringify({ to, subject, body, inReplyTo }),
+        body: JSON.stringify({ account, to, subject, body, inReplyTo }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -61,6 +68,30 @@ export function Composer({
         void send();
       }}
     >
+      {accounts.length > 1 && (
+        <label className="flex items-center gap-2">
+          <span className="hud-sublabel w-10 flex-none">FROM</span>
+          <span className="relative w-full">
+            <select
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+              className="min-h-[42px] w-full cursor-pointer appearance-none border border-line bg-panel/70 px-3 pr-7 text-[10px] font-semibold tracking-[0.14em] text-bright focus:border-line-strong focus:outline-none"
+            >
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.label} · {a.user}
+                </option>
+              ))}
+            </select>
+            <span
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-ink/40"
+              aria-hidden
+            >
+              ▾
+            </span>
+          </span>
+        </label>
+      )}
       <input
         value={to}
         onChange={(e) => setTo(e.target.value)}

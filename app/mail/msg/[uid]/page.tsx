@@ -1,24 +1,32 @@
 import Link from "next/link";
 import { SectionHeader } from "@/components/hud";
 import { Composer } from "@/components/mail/Composer";
-import { getMessage, mailConfig } from "@/lib/mail";
+import { getAccount, getMessage, mailAccounts } from "@/lib/mail";
 import { longDate } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
 
+type SP = Promise<Record<string, string | string[] | undefined>>;
+
 export default async function MessagePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ uid: string }>;
+  searchParams: SP;
 }) {
-  const cfg = mailConfig();
+  const sp = await searchParams;
+  const acc = getAccount(typeof sp.a === "string" ? sp.a : undefined);
+  const folder = typeof sp.f === "string" ? sp.f.slice(0, 200) : "INBOX";
   const uid = Number((await params).uid);
-  if (!cfg || !Number.isInteger(uid) || uid < 1) {
+  const backHref = `/mail?a=${acc?.id ?? ""}&f=${encodeURIComponent(folder)}`;
+
+  if (!acc || !Number.isInteger(uid) || uid < 1) {
     return (
       <div className="flex flex-col gap-6 pt-5">
         <SectionHeader label="MAIL" sub="NOT.FOUND" />
         <Link href="/mail" className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent">
-          ◂ BACK TO INBOX
+          ◂ BACK TO MAIL
         </Link>
       </div>
     );
@@ -26,13 +34,13 @@ export default async function MessagePage({
 
   let msg;
   try {
-    msg = await getMessage(cfg, uid);
+    msg = await getMessage(acc, folder, uid);
   } catch (err) {
     return (
       <div className="flex flex-col gap-6 pt-5">
         <SectionHeader label="MAIL" sub="LINK.DOWN" />
         <div className="hud-panel max-w-2xl p-6 text-[11.5px] text-ink/60">
-          BRIDGE UNREACHABLE — {String((err as Error)?.message ?? err)}
+          {acc.label} UNREACHABLE — {String((err as Error)?.message ?? err)}
         </div>
       </div>
     );
@@ -42,8 +50,11 @@ export default async function MessagePage({
       <div className="flex flex-col gap-6 pt-5">
         <SectionHeader label="MAIL" sub="NOT.FOUND" />
         <div className="hud-panel max-w-2xl p-6 text-[11.5px] text-ink/60">
-          No message with uid {uid} in INBOX.
+          No message with uid {uid} in {folder} on {acc.label}.
         </div>
+        <Link href={backHref} className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent">
+          ◂ BACK TO {folder.toUpperCase()}
+        </Link>
       </div>
     );
   }
@@ -52,12 +63,12 @@ export default async function MessagePage({
 
   return (
     <div className="flex flex-col gap-6 pt-5">
-      <SectionHeader label="MAIL" sub={`MSG.${uid}`} />
+      <SectionHeader label="MAIL" sub={`${acc.label} · MSG.${uid}`} />
       <Link
-        href="/mail"
+        href={backHref}
         className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent"
       >
-        ◂ BACK TO INBOX
+        ◂ BACK TO {folder.replace(/^(Folders|Labels)\//, "").toUpperCase()}
       </Link>
       <article className="hud-panel flex max-w-3xl flex-col gap-4 p-5">
         <header className="flex flex-col gap-1 border-b border-line pb-3">
@@ -78,6 +89,8 @@ export default async function MessagePage({
       <section className="flex max-w-3xl flex-col gap-2">
         <span className="hud-sublabel">REPLY</span>
         <Composer
+          accounts={mailAccounts().map((a) => ({ id: a.id, label: a.label, user: a.user }))}
+          defaultAccount={acc.id}
           initialTo={msg.fromAddr}
           initialSubject={replySubject}
           inReplyTo={msg.messageId}
