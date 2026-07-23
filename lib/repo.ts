@@ -59,7 +59,16 @@ export type EventInput = {
   startsAt: Date;
   endsAt?: Date;
   allDay?: boolean;
+  /** !tag lead time in minutes → linked reminder that pushes before the event */
+  remindBeforeMin?: number;
 };
+
+function leadLabel(min: number): string {
+  if (min === 0) return "at start";
+  if (min % 1440 === 0) return `${min / 1440}d before`;
+  if (min % 60 === 0) return `${min / 60}h before`;
+  return `${min}m before`;
+}
 
 export async function listEvents(from: Date, to: Date) {
   return db
@@ -80,6 +89,14 @@ export async function addEvent(input: EventInput) {
       allDay: input.allDay ?? false,
     })
     .returning();
+  if (input.remindBeforeMin !== undefined) {
+    await db.insert(reminders).values({
+      title: input.title,
+      notes: `⚑ event · ${leadLabel(input.remindBeforeMin)}`,
+      dueAt: new Date(row.startsAt.getTime() - input.remindBeforeMin * 60_000),
+      eventId: row.id, // ON DELETE CASCADE — reminder dies with the event
+    });
+  }
   return row;
 }
 

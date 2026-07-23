@@ -69,6 +69,28 @@ function nextWeekday(now: Date, isoDay: number): Date {
   return d;
 }
 
+/**
+ * Reminder tag on a calendar entry: "!30m" / "!2h" / "!1d" / "!remind"
+ * (default 30m) → minutes of lead time for a pre-event reminder push.
+ */
+export function parseRemindTag(input: string): {
+  text: string;
+  remindBeforeMin?: number;
+} {
+  const m = /(?:^|\s)!(?:(\d+) ?(m|min|h|std|d)|remind|erinnerung)(?=\s|$)/i.exec(
+    input,
+  );
+  if (!m) return { text: input };
+  const unit = m[2]?.toLowerCase();
+  const mins = m[1]
+    ? +m[1] * (unit === "h" || unit === "std" ? 60 : unit === "d" ? 1440 : 1)
+    : 30;
+  return {
+    text: input.replace(m[0], " ").replace(/\s+/g, " ").trim(),
+    remindBeforeMin: Math.min(mins, 10_080),
+  };
+}
+
 export function parseReminderText(
   input: string,
   now: Date,

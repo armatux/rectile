@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseReminderText } from "@/lib/nl";
+import { parseReminderText, parseRemindTag } from "@/lib/nl";
 
 // Thursday, 2026-07-23 14:30 local
 const NOW = new Date(2026, 6, 23, 14, 30, 0);
@@ -90,5 +90,26 @@ describe("parseReminderText", () => {
   it("iso date", () => {
     const p = parseReminderText("deadline 2026-08-01 12:00", NOW);
     expect(p.dueAt).toEqual(new Date(2026, 7, 1, 12, 0, 0));
+  });
+});
+
+describe("parseRemindTag", () => {
+  it("no tag passes through", () => {
+    expect(parseRemindTag("dentist")).toEqual({ text: "dentist" });
+  });
+
+  it("!30m / !2h / !1d", () => {
+    expect(parseRemindTag("dentist !30m")).toEqual({ text: "dentist", remindBeforeMin: 30 });
+    expect(parseRemindTag("dentist !2h")).toEqual({ text: "dentist", remindBeforeMin: 120 });
+    expect(parseRemindTag("!1d dentist")).toEqual({ text: "dentist", remindBeforeMin: 1440 });
+  });
+
+  it("!remind defaults to 30m, !0m = at start", () => {
+    expect(parseRemindTag("zug !remind")).toEqual({ text: "zug", remindBeforeMin: 30 });
+    expect(parseRemindTag("zug !0m")).toEqual({ text: "zug", remindBeforeMin: 0 });
+  });
+
+  it("does not eat mid-word bangs", () => {
+    expect(parseRemindTag("wow!1h party")).toEqual({ text: "wow!1h party" });
   });
 });

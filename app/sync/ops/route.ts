@@ -120,6 +120,7 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
         startsAt: new Date(op.startsAt),
         endsAt: op.endsAt ? new Date(op.endsAt) : undefined,
         allDay: op.allDay,
+        remindBeforeMin: op.remindBeforeMin,
       });
       if (op.tempId) ids.event.set(op.tempId, e.id);
       return;

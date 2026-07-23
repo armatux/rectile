@@ -56,6 +56,8 @@ export const eventCreateSchema = z.object({
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date().optional(),
   allDay: z.boolean().optional(),
+  /** minutes of lead time — creates a linked reminder push before the event */
+  remindBeforeMin: z.number().int().min(0).max(10_080).optional(),
 });
 
 export const repeatSchema = z.enum(["daily", "weekly", "monthly", "yearly"]);

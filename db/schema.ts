@@ -152,6 +152,10 @@ export const reminders = pgTable(
     projectId: integer("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
+    /** set when spawned by a calendar event's !tag — dies with the event */
+    eventId: integer("event_id").references(() => events.id, {
+      onDelete: "cascade",
+    }),
     done: boolean("done").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -162,6 +166,7 @@ export const reminders = pgTable(
   (t) => [
     index("reminders_due_idx").on(t.done, t.dueAt),
     index("reminders_project_idx").on(t.projectId),
+    index("reminders_event_idx").on(t.eventId),
   ],
 );
 

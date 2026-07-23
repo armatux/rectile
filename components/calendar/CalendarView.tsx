@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { parseRemindTag } from "@/lib/nl";
 import { submitOp } from "@/lib/offline/queue";
 
 export type CalEvent = {
@@ -95,7 +96,10 @@ export function CalendarView({
   const selectedEvents = byDay.get(selected) ?? [];
 
   function addEvent() {
-    const t = title.trim();
+    const raw = title.trim();
+    if (!raw) return;
+    // "!30m" / "!2h" / "!1d" / "!remind" spawns a pre-event reminder push
+    const { text: t, remindBeforeMin } = parseRemindTag(raw);
     if (!t) return;
     const startsAt = time
       ? new Date(`${selected}T${time}:00`).toISOString()
@@ -117,6 +121,7 @@ export function CalendarView({
           title: t,
           startsAt,
           allDay: !time,
+          remindBeforeMin,
           tempId: temp.id,
         })
       ) {
@@ -286,6 +291,9 @@ export function CalendarView({
               ADD
             </button>
           </form>
+          <p className="text-[8.5px] tracking-[0.1em] text-ink/30">
+            TAG !30M / !2H / !1D / !REMIND → PUSH BEFORE THE EVENT
+          </p>
         </section>
 
         {/* upcoming */}
