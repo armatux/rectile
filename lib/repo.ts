@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   features,
+  kv,
   links,
   logEntries,
   projects,
@@ -31,6 +32,23 @@ async function touch(projectId: number) {
     .update(projects)
     .set({ lastTouchedAt: now(), updatedAt: now() })
     .where(eq(projects.id, projectId));
+}
+
+/* ------------------------------------ kv ------------------------------------ */
+
+export async function getKv<T = unknown>(
+  key: string,
+): Promise<{ value: T; updatedAt: Date } | null> {
+  const rows = await db.select().from(kv).where(eq(kv.key, key));
+  if (!rows.length) return null;
+  return { value: rows[0].value as T, updatedAt: rows[0].updatedAt };
+}
+
+export async function setKv(key: string, value: unknown): Promise<void> {
+  await db
+    .insert(kv)
+    .values({ key, value, updatedAt: now() })
+    .onConflictDoUpdate({ target: kv.key, set: { value, updatedAt: now() } });
 }
 
 /* ---------------------------------- projects --------------------------------- */

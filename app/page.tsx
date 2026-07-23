@@ -1,10 +1,11 @@
+import { CpptutorWidget, type CpptutorProgress } from "@/components/CpptutorWidget";
 import { FilterBar, type DashboardParams } from "@/components/FilterBar";
 import { NewProjectForm } from "@/components/NewProjectForm";
 import { Orb } from "@/components/Orb";
 import { ProjectCard } from "@/components/ProjectCard";
 import { VitalsBar } from "@/components/Vitals";
 import { SectionHeader } from "@/components/hud";
-import { getVitals, listProjects, type ListProjectsOpts } from "@/lib/repo";
+import { getKv, getVitals, listProjects, type ListProjectsOpts } from "@/lib/repo";
 import { PROJECT_STATUSES } from "@/db/schema";
 import { listTags } from "@/lib/repo";
 
@@ -20,9 +21,10 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
     sort: typeof sp.sort === "string" ? sp.sort : undefined,
   };
   const validStatus = PROJECT_STATUSES.find((s) => s === params.status);
-  const [all, tags] = await Promise.all([
+  const [all, tags, tutor] = await Promise.all([
     listProjects({ sort: (params.sort as ListProjectsOpts["sort"]) ?? "staleness" }),
     listTags(),
+    getKv<CpptutorProgress>("cpptutor_progress"),
   ]);
   const vitals = await getVitals(all);
   const filtered = all.filter((p) => {
@@ -40,6 +42,13 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
       <Orb />
       <SectionHeader label="SYSTEM VITALS" sub="PORTFOLIO.LINK" />
       <VitalsBar vitals={vitals} />
+
+      {tutor && (
+        <>
+          <SectionHeader label="TRAINING UPLINK" sub="CPPTUTOR.SYNC" />
+          <CpptutorWidget data={tutor.value} updatedAt={tutor.updatedAt} />
+        </>
+      )}
 
       <SectionHeader
         label="PROJECT GRID"

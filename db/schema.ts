@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -117,6 +118,16 @@ export const projectTags = pgTable(
   },
   (t) => [primaryKey({ columns: [t.projectId, t.tagId] })],
 );
+
+/** Free-form JSON store for external integrations (e.g. cpptutor progress
+ *  pushed by rectile_sync.py) — one row per widget/integration key. */
+export const kv = pgTable("kv", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   features: many(features),

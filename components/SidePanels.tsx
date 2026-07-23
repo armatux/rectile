@@ -199,45 +199,53 @@ export function ProjectControls({
     });
   }
 
+  const selectCls =
+    "min-h-[44px] w-full cursor-pointer appearance-none border border-line bg-panel/70 pr-7 text-[10px] font-semibold tracking-[0.16em] text-bright hover:border-line-strong focus:border-line-strong focus:outline-none";
+
   return (
     <section className="flex flex-col gap-3">
       <SectionHeader label="CONTROLS" />
-      <div className="flex flex-wrap gap-1.5">
-        {PROJECT_STATUSES.map((s) => {
-          const meta = PROJECT_STATUS_META[s];
-          const active = s === status;
-          return (
-            <button
-              key={s}
-              onClick={() => update({ status: s })}
-              className={`inline-flex min-h-[40px] items-center gap-1.5 border px-2.5 text-[9px] font-semibold tracking-[0.16em] transition-colors ${
-                active
-                  ? "border-line-strong bg-accent/10 text-bright"
-                  : "border-line text-ink/45 hover:border-line-strong hover:text-ink"
-              }`}
-              style={active ? { color: meta.color } : undefined}
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="hud-sublabel">STATUS</span>
+          <span className="relative">
+            <span
+              className="pointer-events-none absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
+              style={{
+                background: PROJECT_STATUS_META[status].color,
+                boxShadow: `0 0 5px ${PROJECT_STATUS_META[status].color}`,
+              }}
+              aria-hidden
+            />
+            <select
+              value={status}
+              onChange={(e) => update({ status: e.target.value })}
+              className={`${selectCls} pl-7`}
             >
-              <span className="h-1 w-1 rounded-full" style={{ background: meta.color }} aria-hidden />
-              {meta.label}
-            </button>
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="hud-sublabel w-14 flex-none">PRIORITY</span>
-        {[1, 2, 3].map((p) => (
-          <button
-            key={p}
-            onClick={() => update({ priority: p })}
-            className={`min-h-[40px] w-12 border text-[10px] font-bold tracking-[0.12em] transition-colors ${
-              p === priority
-                ? "border-line-strong bg-accent/10 text-accent"
-                : "border-line text-ink/40 hover:text-ink"
-            }`}
-          >
-            P{p}
-          </button>
-        ))}
+              {PROJECT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {PROJECT_STATUS_META[s].label}
+                </option>
+              ))}
+            </select>
+            <SelectChevron />
+          </span>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="hud-sublabel">PRIORITY</span>
+          <span className="relative">
+            <select
+              value={priority}
+              onChange={(e) => update({ priority: Number(e.target.value) })}
+              className={`${selectCls} pl-3`}
+            >
+              <option value={1}>P1 · NOW</option>
+              <option value={2}>P2 · NORMAL</option>
+              <option value={3}>P3 · WHENEVER</option>
+            </select>
+            <SelectChevron />
+          </span>
+        </label>
       </div>
       <button
         onClick={() => {
@@ -250,14 +258,25 @@ export function ProjectControls({
             setTimeout(() => setPendingDelete(false), 3000);
           }
         }}
-        className={`min-h-[40px] border px-3 text-left text-[9px] font-bold tracking-[0.22em] transition-colors ${
+        className={`min-h-[36px] self-end px-1 text-[9px] font-bold tracking-[0.22em] transition-colors ${
           pendingDelete
-            ? "border-danger/70 bg-danger/10 text-danger"
-            : "border-line text-ink/30 hover:border-danger/40 hover:text-danger/80"
+            ? "text-danger"
+            : "text-ink/25 hover:text-danger/80"
         }`}
       >
-        {pendingDelete ? "TAP AGAIN TO ERASE PERMANENTLY" : "DELETE PROJECT"}
+        {pendingDelete ? "TAP AGAIN TO ERASE PERMANENTLY" : "× ERASE PROJECT"}
       </button>
     </section>
+  );
+}
+
+function SelectChevron() {
+  return (
+    <span
+      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-ink/40"
+      aria-hidden
+    >
+      ▾
+    </span>
   );
 }
