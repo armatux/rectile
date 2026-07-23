@@ -19,6 +19,26 @@ function ClockDisplay() {
   );
 }
 
+/** Browser-style controls — the installed PWA window has no chrome, so
+ *  back/forward/reload need to live in the app itself. */
+function NavControls() {
+  const btn =
+    "flex h-9 w-9 items-center justify-center border border-line text-[11px] text-ink/45 transition-colors hover:border-line-strong hover:text-accent";
+  return (
+    <span className="flex items-center gap-1">
+      <button onClick={() => history.back()} className={btn} aria-label="back">
+        ◂
+      </button>
+      <button onClick={() => history.forward()} className={btn} aria-label="forward">
+        ▸
+      </button>
+      <button onClick={() => location.reload()} className={btn} aria-label="reload">
+        ⟳
+      </button>
+    </span>
+  );
+}
+
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
   const active = pathname === href;
@@ -77,6 +97,7 @@ export function TopBar() {
             PROJECT OPERATIONS TERMINAL
           </span>
         </Link>
+        <NavControls />
         <nav className="flex items-center">
           <NavLink href="/" label="GRID" />
           <NavLink href="/stale" label="STALE" />
