@@ -1,26 +1,9 @@
 import Link from "next/link";
 import { ProgressBar } from "./hud";
+import type { CpptutorProgress } from "@/lib/cpptutor";
 import { relTime } from "@/lib/ui";
 
-/** Payload written by ~/cpptutor/rectile_sync.py to kv key "cpptutor_progress". */
-export type CpptutorProgress = {
-  level: number;
-  title: string;
-  prestige: number;
-  xp: number;
-  xp_lifetime: number;
-  xp_level_floor: number;
-  xp_level_next: number;
-  done: number;
-  total: number;
-  tracks?: { id: string; title: string; done: number; total: number }[];
-  streak: number;
-  streak_best: number;
-  next_lesson: string | null;
-  next_module: string | null;
-  next_track: string | null;
-  synced?: string;
-};
+export type { CpptutorProgress } from "@/lib/cpptutor";
 
 function MiniBar({
   label,
@@ -60,7 +43,7 @@ export function CpptutorWidget({
 
   return (
     <Link
-      href="/p/cpptutor"
+      href="/cpptutor"
       className="hud-panel group flex flex-col gap-4 p-4 transition-colors hover:border-line-strong"
     >
       <div className="grid grid-cols-1 items-center gap-x-8 gap-y-4 lg:grid-cols-[auto_1fr_1fr]">

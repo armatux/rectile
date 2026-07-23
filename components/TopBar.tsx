@@ -80,6 +80,7 @@ export function TopBar() {
         <nav className="flex items-center">
           <NavLink href="/" label="GRID" />
           <NavLink href="/stale" label="STALE" />
+          <NavLink href="/cpptutor" label="TUTOR" />
         </nav>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-4 sm:flex-none">
           <Suspense fallback={null}>
