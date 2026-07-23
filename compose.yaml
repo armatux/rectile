@@ -26,6 +26,19 @@ services:
       retries: 3
       start_period: 25s
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: rectile-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      # connector token for the "proxmox" tunnel (Zero Trust → Networks →
+      # Tunnels); the dashboard routes armadax.xyz → http://app:3000
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      app:
+        condition: service_healthy
+
   db:
     image: postgres:16-alpine
     container_name: rectile-db

@@ -59,10 +59,13 @@ new file in `drizzle/`.
 ## Production deploy (Proxmox / any Docker host)
 
 ```bash
-git clone <this repo> /opt/rectile && cd /opt/rectile
-cp .env.example .env      # set POSTGRES_PASSWORD + API_TOKEN (openssl rand -hex 32)
+git clone git@github.com:armatux/rectile.git /opt/rectile && cd /opt/rectile
+cp .env.example .env      # set POSTGRES_PASSWORD, API_TOKEN (openssl rand -hex 32), TUNNEL_TOKEN
 docker compose up -d --build
 ```
+
+That single command brings up Postgres, the app (migrates on boot), and the
+Cloudflare Tunnel connector — the site is then live at https://armadax.xyz.
 
 - **Migrations run automatically on boot** (instrumentation hook applies
   pending files from `drizzle/`; disable with `RECTILE_MIGRATE_ON_BOOT=0`).
@@ -80,35 +83,36 @@ docker compose up -d --build
 
 Restore: `gunzip -c backup.sql.gz | docker compose exec -T db psql -U rectile rectile`
 
-### Cloudflare Tunnel
+### Cloudflare Tunnel (already configured, 2026-07-23)
 
-`cloudflared` config (`/etc/cloudflared/config.yml`) ingress snippet:
+The compose stack includes a `cloudflared` service that joins the
+dashboard-managed tunnel **`proxmox`** using `TUNNEL_TOKEN` from `.env` —
+no cloudflared install on the host needed. The tunnel's published
+application route (Zero Trust → Networks → Tunnels & Mesh → proxmox) is:
 
-```yaml
-ingress:
-  - hostname: armadax.xyz
-    service: http://localhost:3000
-  - service: http_status:404
-```
+- `armadax.xyz` (all paths) → `http://app:3000` (the app container, resolved
+  on the compose network)
 
-### Cloudflare Access — REQUIRED SETUP
+If you ever recreate the tunnel: make a new tunnel, copy its connector
+token into `.env` as `TUNNEL_TOKEN`, and add the same published-application
+route (service must be `http://app:3000`, not localhost, because cloudflared
+runs as a sibling container).
+
+### Cloudflare Access (already configured, 2026-07-23)
 
 Browser access is protected by **Cloudflare Access in front of the tunnel** —
-the app itself has **no login/user accounts** by design.
+the app itself has **no login/user accounts** by design. Two self-hosted
+Access applications exist on team `still-rice-163a`:
 
-The API paths must stay reachable for Claude, so **create an Access
-bypass/service rule for the path `/api/*` on `armadax.xyz`**:
+| App | Destination | Policy |
+| --- | --- | --- |
+| `rectile` | `armadax.xyz` | `owner-allow`: Allow → Emails: armatux@pm.me (one-time PIN) |
+| `rectile-api` | `armadax.xyz/api` | `api-bypass`: **Bypass → Everyone** |
 
-1. Zero Trust → Access → Applications → *Add application* → Self-hosted,
-   application domain `armadax.xyz`, path **`api`** (covers `/api/*`).
-2. Give it a single policy with action **Bypass** → *Everyone*.
-3. Keep (or add) your normal Access application for `armadax.xyz` itself with
-   your usual allow policy — that one keeps the browser UI locked down.
-
-That is safe because **every route under `/api/*` (REST + MCP) is guarded by
-the bearer token in `middleware.ts`** — requests without
-`Authorization: Bearer <API_TOKEN>` get a 401. Never mount anything under
-`/api/*` that skips that check.
+Access matches the most specific destination first, so `/api/*` (REST + MCP)
+skips the login screen and is guarded **only** by the bearer token in
+`middleware.ts` — requests without `Authorization: Bearer <API_TOKEN>` get
+a 401. Never mount anything under `/api/*` that skips that check.
 
 ## REST API (`/api/v1/*`)
 
