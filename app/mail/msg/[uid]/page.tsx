@@ -2,6 +2,8 @@ import Link from "next/link";
 import { SectionHeader } from "@/components/hud";
 import { Composer } from "@/components/mail/Composer";
 import { getAccount, getMessage, mailAccounts } from "@/lib/mail";
+import { LabelChip } from "@/components/mail/LabelChip";
+import { listTags } from "@/lib/repo";
 import { longDate } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +74,16 @@ export default async function MessagePage({
       </Link>
       <article className="hud-panel flex max-w-3xl flex-col gap-4 p-5">
         <header className="flex flex-col gap-1 border-b border-line pb-3">
-          <h1 className="text-[15px] font-bold text-bright">{msg.subject}</h1>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h1 className="text-[15px] font-bold text-bright">{msg.subject}</h1>
+            {msg.labels.length > 0 &&
+              (await listTags().then((ts) => {
+                const colors = new Map(ts.map((t) => [t.name.toLowerCase(), t.color]));
+                return msg.labels.map((l) => (
+                  <LabelChip key={l} label={l} color={colors.get(l.toLowerCase())} />
+                ));
+              }))}
+          </div>
           <p className="text-[10.5px] text-ink/60">
             <span className="text-ink">{msg.from}</span>
             {msg.fromAddr && <span className="text-ink/40"> &lt;{msg.fromAddr}&gt;</span>}

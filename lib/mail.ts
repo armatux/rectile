@@ -154,7 +154,40 @@ export type MailEnvelope = {
   fromAddr: string;
   date: string;
   seen: boolean;
+  /** Proton labels this message carries (from the Labels/* folders) */
+  labels: string[];
 };
+
+/* Message-ID → label names, cached per account. Proton exposes labels as
+ * Labels/<name> folders; membership is only discoverable by enumerating
+ * them, so we build the map once and reuse it for a few minutes. */
+type LabelCache = { builtAt: number; map: Map<string, string[]> };
+const labelCaches = new Map<string, LabelCache>();
+const LABEL_TTL_MS = 3 * 60_000;
+
+async function labelMap(acc: MailAccount, c: ImapFlow): Promise<Map<string, string[]>> {
+  const hit = labelCaches.get(acc.id);
+  if (hit && Date.now() - hit.builtAt < LABEL_TTL_MS) return hit.map;
+  const map = new Map<string, string[]>();
+  const boxes = await c.list();
+  for (const b of boxes) {
+    if (!/^Labels\/[^/]+$/.test(b.path) || b.flags?.has("\\Noselect")) continue;
+    const label = b.path.slice("Labels/".length);
+    const lock = await c.getMailboxLock(b.path);
+    try {
+      const exists = typeof c.mailbox === "object" ? c.mailbox.exists : 0;
+      if (!exists) continue;
+      for await (const msg of c.fetch("1:*", { envelope: true })) {
+        const mid = msg.envelope?.messageId;
+        if (mid) map.set(mid, [...(map.get(mid) ?? []), label]);
+      }
+    } finally {
+      lock.release();
+    }
+  }
+  labelCaches.set(acc.id, { builtAt: Date.now(), map });
+  return map;
+}
 
 export type MailMessage = MailEnvelope & {
   to: string;
@@ -169,11 +202,11 @@ export async function listMailbox(
 ): Promise<MailEnvelope[]> {
   return withImap(acc, async (c) => {
     const lock = await c.getMailboxLock(path);
+    const out: (MailEnvelope & { mid?: string })[] = [];
     try {
       const total = typeof c.mailbox === "object" ? c.mailbox.exists : 0;
       if (!total) return [];
       const fromSeq = Math.max(1, total - limit + 1);
-      const out: MailEnvelope[] = [];
       for await (const msg of c.fetch(`${fromSeq}:*`, { uid: true, envelope: true, flags: true })) {
         const from = msg.envelope?.from?.[0];
         out.push({
@@ -183,12 +216,25 @@ export async function listMailbox(
           fromAddr: from?.address ?? "",
           date: (msg.envelope?.date ?? new Date()).toISOString(),
           seen: msg.flags?.has("\\Seen") ?? false,
+          labels: [],
+          mid: msg.envelope?.messageId,
         });
       }
-      return out.reverse();
     } finally {
       lock.release();
     }
+    /* attach label chips — skip when browsing a label folder itself */
+    const ownLabel = path.startsWith("Labels/") ? path.slice("Labels/".length) : null;
+    try {
+      const map = await labelMap(acc, c);
+      for (const m of out) {
+        if (m.mid) m.labels = (map.get(m.mid) ?? []).filter((l) => l !== ownLabel);
+        delete m.mid;
+      }
+    } catch {
+      /* labels are decoration — never fail the list over them */
+    }
+    return out.reverse();
   });
 }
 
@@ -216,6 +262,7 @@ export async function getMessage(
 ): Promise<MailMessage | null> {
   return withImap(acc, async (c) => {
     const lock = await c.getMailboxLock(path);
+    let base: MailMessage | null = null;
     try {
       const msg = await c.fetchOne(
         String(uid),
@@ -226,9 +273,10 @@ export async function getMessage(
       const parsed = await simpleParser(msg.source);
       const from = msg.envelope?.from?.[0];
       await c.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true }).catch(() => {});
-      return {
+      base = {
         uid,
         seen: true,
+        labels: [],
         subject: msg.envelope?.subject ?? "(no subject)",
         from: from?.name || from?.address || "unknown",
         fromAddr: from?.address ?? "",
@@ -240,6 +288,16 @@ export async function getMessage(
     } finally {
       lock.release();
     }
+    /* label lookup AFTER release — labelMap locks other mailboxes and
+     * imapflow serializes locks per client (deadlock otherwise) */
+    if (base?.messageId) {
+      try {
+        base.labels = (await labelMap(acc, c)).get(base.messageId) ?? [];
+      } catch {
+        /* decoration only */
+      }
+    }
+    return base;
   });
 }
 

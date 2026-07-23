@@ -9,6 +9,8 @@ import {
   type MailEnvelope,
   type MailFolder,
 } from "@/lib/mail";
+import { LabelChip } from "@/components/mail/LabelChip";
+import { listTags } from "@/lib/repo";
 import { relTime } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +50,9 @@ export default async function MailPage({ searchParams }: { searchParams: SP }) {
 
   let folders: MailFolder[];
   let inbox: MailEnvelope[];
+  const tagColors = new Map(
+    (await listTags()).map((t) => [t.name.toLowerCase(), t.color]),
+  );
   try {
     [folders, inbox] = await Promise.all([
       listFolders(acc),
@@ -162,6 +167,9 @@ export default async function MailPage({ searchParams }: { searchParams: SP }) {
               >
                 {m.subject}
               </span>
+              {m.labels.slice(0, 3).map((l) => (
+                <LabelChip key={l} label={l} color={tagColors.get(l.toLowerCase())} />
+              ))}
               <span className="flex-none text-[9.5px] tabular-nums text-ink/40">
                 {relTime(m.date)}
               </span>
