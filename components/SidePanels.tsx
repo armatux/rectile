@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  actionAddLink,
-  actionDeleteLink,
-  actionDeleteProject,
-  actionSetTags,
-  actionUpdateProject,
-} from "@/app/actions";
+import { actionDeleteProject } from "@/app/actions";
+import { isOffline, submitOp } from "@/lib/offline/queue";
 import { PROJECT_STATUSES, type Project } from "@/db/schema";
 import { PROJECT_STATUS_META } from "@/lib/ui";
 import { SectionHeader } from "./hud";
@@ -24,15 +19,18 @@ const inputCls =
 export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const [items, setItems] = useState(links);
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
 
+  useEffect(() => setItems(links), [links]);
+
   return (
     <section className="flex flex-col gap-2">
-      <SectionHeader label="LINKS" sub={`×${links.length}`} />
+      <SectionHeader label="LINKS" sub={`×${items.length}`} />
       <ul className="flex flex-col">
-        {links.map((l) => (
+        {items.map((l) => (
           <li key={l.id} className="group flex min-h-[44px] items-center gap-2">
             <span className="text-[10px] text-accent" aria-hidden>
               ◈
@@ -56,12 +54,14 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
               </span>
             </a>
             <button
-              onClick={() =>
+              onClick={() => {
+                setItems((ls) => ls.filter((x) => x.id !== l.id));
                 startTransition(async () => {
-                  await actionDeleteLink(slug, l.id);
-                  router.refresh();
-                })
-              }
+                  if (await submitOp({ kind: "link.delete", slug, id: l.id })) {
+                    router.refresh();
+                  }
+                });
+              }}
               className="h-8 w-8 flex-none text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
               aria-label={`delete link ${l.label}`}
             >
@@ -77,12 +77,15 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
             e.preventDefault();
             if (!label.trim() || !url.trim()) return;
             const u = /^https?:\/\//.test(url) ? url : `https://${url}`;
+            const temp: LinkDTO = { id: -Date.now(), label: label.trim(), url: u };
+            setItems((ls) => [...ls, temp]);
+            setLabel("");
+            setUrl("");
+            setAdding(false);
             startTransition(async () => {
-              await actionAddLink(slug, label.trim(), u);
-              setLabel("");
-              setUrl("");
-              setAdding(false);
-              router.refresh();
+              // temp link stays until fresh server data replaces it (or the queue flushes)
+              const op = { kind: "link.add" as const, slug, label: temp.label, url: u, tempId: temp.id };
+              if (await submitOp(op)) router.refresh();
             });
           }}
         >
@@ -122,23 +125,27 @@ export function TagEditor({
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const [items, setItems] = useState(current);
   const [value, setValue] = useState("");
 
-  function commit(names: string[]) {
+  useEffect(() => setItems(current), [current]);
+
+  function commit(next: TagDTO[]) {
+    setItems(next);
     startTransition(async () => {
-      await actionSetTags(slug, names);
-      router.refresh();
+      const names = next.map((t) => t.name);
+      if (await submitOp({ kind: "tags.set", slug, names })) router.refresh();
     });
   }
 
   return (
     <section className="flex flex-col gap-2">
-      <SectionHeader label="TAGS" sub={`×${current.length}`} />
+      <SectionHeader label="TAGS" sub={`×${items.length}`} />
       <div className="flex flex-wrap gap-1.5">
-        {current.map((t) => (
+        {items.map((t) => (
           <button
             key={t.name}
-            onClick={() => commit(current.filter((x) => x.name !== t.name).map((x) => x.name))}
+            onClick={() => commit(items.filter((x) => x.name !== t.name))}
             className="group inline-flex min-h-[36px] items-center gap-1.5 border border-line px-2 text-[9px] tracking-[0.14em] text-ink/70 hover:border-danger/60"
             title="remove tag"
           >
@@ -154,8 +161,8 @@ export function TagEditor({
           const name = value.trim();
           if (!name) return;
           setValue("");
-          if (current.some((t) => t.name.toLowerCase() === name.toLowerCase())) return;
-          commit([...current.map((t) => t.name), name]);
+          if (items.some((t) => t.name.toLowerCase() === name.toLowerCase())) return;
+          commit([...items, { name, color: "#b39cf5" }]);
         }}
         className="flex items-center gap-2"
       >
@@ -191,11 +198,17 @@ export function ProjectControls({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [pendingDelete, setPendingDelete] = useState(false);
+  const [localStatus, setLocalStatus] = useState(status);
+  const [localPriority, setLocalPriority] = useState(priority);
 
-  function update(patch: Record<string, unknown>) {
+  useEffect(() => setLocalStatus(status), [status]);
+  useEffect(() => setLocalPriority(priority), [priority]);
+
+  function update(patch: { status?: Project["status"]; priority?: number }) {
+    if (patch.status) setLocalStatus(patch.status);
+    if (patch.priority) setLocalPriority(patch.priority);
     startTransition(async () => {
-      await actionUpdateProject(slug, patch);
-      router.refresh();
+      if (await submitOp({ kind: "project.update", slug, patch })) router.refresh();
     });
   }
 
@@ -212,14 +225,14 @@ export function ProjectControls({
             <span
               className="pointer-events-none absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
               style={{
-                background: PROJECT_STATUS_META[status].color,
-                boxShadow: `0 0 5px ${PROJECT_STATUS_META[status].color}`,
+                background: PROJECT_STATUS_META[localStatus].color,
+                boxShadow: `0 0 5px ${PROJECT_STATUS_META[localStatus].color}`,
               }}
               aria-hidden
             />
             <select
-              value={status}
-              onChange={(e) => update({ status: e.target.value })}
+              value={localStatus}
+              onChange={(e) => update({ status: e.target.value as Project["status"] })}
               className={`${selectCls} pl-7`}
             >
               {PROJECT_STATUSES.map((s) => (
@@ -235,7 +248,7 @@ export function ProjectControls({
           <span className="hud-sublabel">PRIORITY</span>
           <span className="relative">
             <select
-              value={priority}
+              value={localPriority}
               onChange={(e) => update({ priority: Number(e.target.value) })}
               className={`${selectCls} pl-3`}
             >
@@ -249,6 +262,7 @@ export function ProjectControls({
       </div>
       <button
         onClick={() => {
+          if (isOffline()) return; // deleting a project is online-only, on purpose
           if (pendingDelete) {
             startTransition(async () => {
               await actionDeleteProject(slug);

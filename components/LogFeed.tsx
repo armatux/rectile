@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { actionAddLog, actionDeleteLog } from "@/app/actions";
+import { submitOp } from "@/lib/offline/queue";
 import { renderMarkdown } from "@/lib/markdown";
 import { longDate, relTime } from "@/lib/ui";
 
@@ -35,11 +35,10 @@ export function LogFeed({
     };
     setLogs((ls) => [temp, ...ls]);
     startTransition(async () => {
-      const res = await actionAddLog(slug, body);
-      setLogs((ls) =>
-        ls.map((l) => (l.id === temp.id ? { ...l, id: res.logEntry.id } : l)),
-      );
-      router.refresh();
+      // temp entry stays until fresh server data replaces it (or the queue flushes)
+      if (await submitOp({ kind: "log.add", slug, body, tempId: temp.id })) {
+        router.refresh();
+      }
     });
   }
 
@@ -49,8 +48,7 @@ export function LogFeed({
       setPendingDelete(null);
       setLogs((ls) => ls.filter((l) => l.id !== id));
       startTransition(async () => {
-        await actionDeleteLog(slug, id);
-        router.refresh();
+        if (await submitOp({ kind: "log.delete", slug, id })) router.refresh();
       });
     } else {
       setPendingDelete(id);

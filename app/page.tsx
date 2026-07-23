@@ -1,5 +1,6 @@
 import { CpptutorWidget, type CpptutorProgress } from "@/components/CpptutorWidget";
 import { FilterBar, type DashboardParams } from "@/components/FilterBar";
+import { PrecachePing } from "@/components/PrecachePing";
 import { NewProjectForm } from "@/components/NewProjectForm";
 import { Orb } from "@/components/Orb";
 import { ProjectCard } from "@/components/ProjectCard";
@@ -40,6 +41,9 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
   return (
     <div className="relative flex flex-col gap-6 pt-5">
       <Orb />
+      <PrecachePing
+        urls={["/", "/stale", "/offline", "/cpptutor", ...all.map((p) => `/p/${p.slug}`)]}
+      />
       <SectionHeader label="SYSTEM VITALS" sub="PORTFOLIO.LINK" />
       <VitalsBar vitals={vitals} />
 

@@ -3,6 +3,7 @@ import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { TopBar } from "@/components/TopBar";
 import { SwRegister } from "@/components/SwRegister";
+import { OfflineSync } from "@/components/OfflineSync";
 
 const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
@@ -48,6 +49,7 @@ export default function RootLayout({
         </div>
         <div className="vignette" aria-hidden />
         <SwRegister />
+        <OfflineSync />
       </body>
     </html>
   );

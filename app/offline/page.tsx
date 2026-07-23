@@ -13,8 +13,9 @@ export default function OfflinePage() {
         NO CONNECTION TO CORE
       </p>
       <p className="max-w-sm text-[11px] leading-relaxed text-ink/40">
-        rectile needs its server for live data. reconnect and pull down to
-        refresh — cached pages may still be browsable via the back button.
+        no live data, but every project page is cached for offline reading —
+        go back and keep browsing. anything you log or change while offline
+        is queued and syncs the moment the link returns.
       </p>
     </div>
   );

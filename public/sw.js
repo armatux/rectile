@@ -5,9 +5,60 @@
  *  - navigations       : network-first, fall back to cache, then /offline
  *  - /_next/static, fonts, /icons : cache-first (content-hashed / immutable)
  *  - everything else GET: network, populate cache as fallback copy
+ *  - PRECACHE message  : the dashboard posts the full page list (all /p/<slug>
+ *    pages) so every page opens offline even if never visited on this device
  */
-const VERSION = "rectile-v1";
+const VERSION = "rectile-v2";
 const SHELL = ["/", "/stale", "/offline"];
+
+/* Precache pages AND every /_next/static asset they reference — without the
+ * route chunks a cached page renders but never hydrates (dead buttons, native
+ * form submits). Pass 1 caches page HTML and collects chunk paths; pass 2
+ * fetches uncached chunks; pass 3 mines CSS for fonts/media. */
+const ASSET_RE = /\/_next\/static\/[^"'<>\s\\)]+/g;
+
+async function precache(urls) {
+  const cache = await caches.open(VERSION);
+  const assets = new Set();
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      const res = await fetch(url, { credentials: "same-origin" });
+      if (!res.ok) return;
+      const text = await res.clone().text();
+      await cache.put(url, res);
+      for (const m of text.matchAll(ASSET_RE)) assets.add(m[0]);
+    }),
+  );
+
+  const cssFiles = [];
+  await Promise.allSettled(
+    [...assets].map(async (path) => {
+      if (await cache.match(path)) return;
+      const res = await fetch(path);
+      if (!res.ok) return;
+      if (path.endsWith(".css")) cssFiles.push([path, await res.clone().text()]);
+      await cache.put(path, res);
+    }),
+  );
+
+  const media = new Set();
+  for (const [, text] of cssFiles)
+    for (const m of text.matchAll(ASSET_RE)) media.add(m[0]);
+  await Promise.allSettled(
+    [...media].map(async (path) => {
+      if (await cache.match(path)) return;
+      const res = await fetch(path);
+      if (res.ok) await cache.put(path, res);
+    }),
+  );
+}
+
+self.addEventListener("message", (event) => {
+  const msg = event.data;
+  if (!msg || msg.type !== "PRECACHE" || !Array.isArray(msg.urls)) return;
+  event.waitUntil(precache(msg.urls));
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -36,19 +87,22 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
-  // navigations: network-first so data is always fresh
+  // navigations: network-first so data is always fresh. Cache under the bare
+  // pathname and match with ignoreVary — Next.js sends `Vary: rsc, ...` which
+  // would otherwise make cached pages unmatchable for some navigations.
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy));
+          caches.open(VERSION).then((c) => c.put(url.pathname, copy));
           return res;
         })
         .catch(() =>
           caches
-            .match(req)
-            .then((hit) => hit || caches.match("/offline"))
+            .match(url.pathname, { ignoreVary: true })
+            .then((hit) => hit || caches.match(req, { ignoreVary: true, ignoreSearch: true }))
+            .then((hit) => hit || caches.match("/offline", { ignoreVary: true }))
             .then((hit) => hit || Response.error()),
         ),
     );

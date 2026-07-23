@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  actionAddFeature,
-  actionDeleteFeature,
-  actionMoveFeature,
-} from "@/app/actions";
+import { submitOp } from "@/lib/offline/queue";
 import { FEATURE_STATUS_META } from "@/lib/ui";
 import { ProgressBar } from "./hud";
 
@@ -99,8 +95,9 @@ export function RoadmapBoard({
     });
     if (status === "built") markBuilt(id);
     startTransition(async () => {
-      await actionMoveFeature(slug, id, status, orderedIds);
-      router.refresh();
+      if (await submitOp({ kind: "feature.move", slug, id, status, orderedIds })) {
+        router.refresh();
+      }
     });
   }
 
@@ -144,15 +141,10 @@ export function RoadmapBoard({
     };
     setFeatures((fs) => [...fs, temp]);
     startTransition(async () => {
-      const res = await actionAddFeature(slug, title, status);
-      setFeatures((fs) =>
-        fs.map((f) =>
-          f.id === temp.id
-            ? { ...temp, id: res.feature.id, sortOrder: res.feature.sortOrder }
-            : f,
-        ),
-      );
-      router.refresh();
+      // temp card stays until fresh server data replaces it (or the queue flushes)
+      if (await submitOp({ kind: "feature.add", slug, title, status, tempId: temp.id })) {
+        router.refresh();
+      }
     });
   }
 
@@ -162,8 +154,7 @@ export function RoadmapBoard({
       setPendingDelete(null);
       setFeatures((fs) => fs.filter((f) => f.id !== id));
       startTransition(async () => {
-        await actionDeleteFeature(slug, id);
-        router.refresh();
+        if (await submitOp({ kind: "feature.delete", slug, id })) router.refresh();
       });
     } else {
       setPendingDelete(id);
