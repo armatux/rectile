@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -117,6 +118,24 @@ export const projectTags = pgTable(
       .references(() => tags.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.projectId, t.tagId] })],
+);
+
+/** Local calendar events. Subscribed (ICS/Proton) events are NOT stored
+ *  here — they are fetched + cached at render time and merged read-only. */
+export const events = pgTable(
+  "events",
+  {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    allDay: boolean("all_day").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("events_starts_idx").on(t.startsAt)],
 );
 
 /** Free-form JSON store for external integrations (e.g. cpptutor progress

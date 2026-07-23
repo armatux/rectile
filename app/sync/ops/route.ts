@@ -6,14 +6,17 @@ import { projects } from "@/db/schema";
 import { handleError, json } from "@/lib/api";
 import { opsBatchSchema, type Op, type OpResult } from "@/lib/offline/ops";
 import {
+  addEvent,
   addFeature,
   addLink,
   addLogEntry,
   createProject,
+  deleteEvent,
   deleteFeature,
   deleteLink,
   deleteLogEntry,
   reorderFeatures,
+  setKv,
   setProjectTags,
   updateFeature,
   updateProject,
@@ -34,7 +37,12 @@ export const dynamic = "force-dynamic";
  */
 
 /** temp-id → real-id, kept per entity kind (temp ids may collide across kinds) */
-type IdMaps = { feature: Map<number, number>; log: Map<number, number>; link: Map<number, number> };
+type IdMaps = {
+  feature: Map<number, number>;
+  log: Map<number, number>;
+  link: Map<number, number>;
+  event: Map<number, number>;
+};
 
 function remap(map: Map<number, number>, id: number): number | null {
   const real = id < 0 ? map.get(id) : id;
@@ -101,6 +109,26 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
       await deleteLink(id);
       return;
     }
+    case "event.add": {
+      const e = await addEvent({
+        title: op.title,
+        notes: op.notes,
+        startsAt: new Date(op.startsAt),
+        endsAt: op.endsAt ? new Date(op.endsAt) : undefined,
+        allDay: op.allDay,
+      });
+      if (op.tempId) ids.event.set(op.tempId, e.id);
+      return;
+    }
+    case "event.delete": {
+      const id = remap(ids.event, op.id);
+      if (id === null) throw new Error(`unknown temp event id ${op.id}`);
+      await deleteEvent(id);
+      return;
+    }
+    case "kv.set":
+      await setKv(op.key, op.value); // op.key is allowlisted by the schema
+      return;
   }
 }
 
@@ -110,7 +138,12 @@ export async function POST(req: NextRequest) {
       return json({ error: "missing sync header" }, 400);
     }
     const { ops } = opsBatchSchema.parse(await req.json());
-    const ids: IdMaps = { feature: new Map(), log: new Map(), link: new Map() };
+    const ids: IdMaps = {
+      feature: new Map(),
+      log: new Map(),
+      link: new Map(),
+      event: new Map(),
+    };
     const results: OpResult[] = [];
     const touched = new Set<string>();
 
@@ -126,6 +159,7 @@ export async function POST(req: NextRequest) {
 
     revalidatePath("/");
     revalidatePath("/stale");
+    revalidatePath("/calendar");
     for (const slug of touched) revalidatePath(`/p/${slug}`);
     return json({ results });
   } catch (err) {

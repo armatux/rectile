@@ -81,6 +81,8 @@ export function TopBar() {
           <NavLink href="/" label="GRID" />
           <NavLink href="/stale" label="STALE" />
           <NavLink href="/cpptutor" label="TUTOR" />
+          <NavLink href="/calendar" label="CAL" />
+          <NavLink href="/mail" label="MAIL" />
         </nav>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-4 sm:flex-none">
           <Suspense fallback={null}>

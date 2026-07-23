@@ -50,6 +50,14 @@ export const linkCreateSchema = z.object({
 
 export const linkUpdateSchema = linkCreateSchema.partial();
 
+export const eventCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  notes: z.string().max(5_000).optional(),
+  startsAt: z.coerce.date(),
+  endsAt: z.coerce.date().optional(),
+  allDay: z.boolean().optional(),
+});
+
 export const tagCreateSchema = z.object({
   name: z.string().trim().min(1).max(50),
   color: z

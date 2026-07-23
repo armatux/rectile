@@ -1,11 +1,15 @@
 import { z } from "zod";
 import {
+  eventCreateSchema,
   featureStatusSchema,
   linkCreateSchema,
   logCreateSchema,
   projectCreateSchema,
   projectUpdateSchema,
 } from "@/lib/validators";
+
+/** kv keys the browser is allowed to write via the ops queue */
+export const CLIENT_KV_KEYS = ["calendar_subscriptions"] as const;
 
 /**
  * Operations the offline write queue can capture and replay.
@@ -49,6 +53,18 @@ export const opSchema = z.discriminatedUnion("kind", [
     tempId: z.number().int().negative().optional(),
   }),
   z.object({ kind: z.literal("link.delete"), slug, id }),
+  eventCreateSchema.extend({
+    kind: z.literal("event.add"),
+    startsAt: z.string(), // ISO — Dates don't survive IndexedDB→JSON round-trips
+    endsAt: z.string().optional(),
+    tempId: z.number().int().negative().optional(),
+  }),
+  z.object({ kind: z.literal("event.delete"), id }),
+  z.object({
+    kind: z.literal("kv.set"),
+    key: z.enum(CLIENT_KV_KEYS),
+    value: z.unknown(),
+  }),
 ]);
 
 export const opsBatchSchema = z.object({ ops: z.array(opSchema).max(500) });

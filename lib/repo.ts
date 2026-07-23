@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  events,
   features,
   kv,
   links,
@@ -32,6 +33,43 @@ async function touch(projectId: number) {
     .update(projects)
     .set({ lastTouchedAt: now(), updatedAt: now() })
     .where(eq(projects.id, projectId));
+}
+
+/* ---------------------------------- events ---------------------------------- */
+
+export type EventInput = {
+  title: string;
+  notes?: string;
+  startsAt: Date;
+  endsAt?: Date;
+  allDay?: boolean;
+};
+
+export async function listEvents(from: Date, to: Date) {
+  return db
+    .select()
+    .from(events)
+    .where(and(gte(events.startsAt, from), lte(events.startsAt, to)))
+    .orderBy(asc(events.startsAt));
+}
+
+export async function addEvent(input: EventInput) {
+  const [row] = await db
+    .insert(events)
+    .values({
+      title: input.title,
+      notes: input.notes ?? null,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt ?? null,
+      allDay: input.allDay ?? false,
+    })
+    .returning();
+  return row;
+}
+
+export async function deleteEvent(id: number): Promise<void> {
+  const res = await db.delete(events).where(eq(events.id, id)).returning();
+  if (!res.length) throw new NotFoundError(`no event ${id}`);
 }
 
 /* ------------------------------------ kv ------------------------------------ */

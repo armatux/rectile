@@ -42,7 +42,14 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
     <div className="relative flex flex-col gap-6 pt-5">
       <Orb />
       <PrecachePing
-        urls={["/", "/stale", "/offline", "/cpptutor", ...all.map((p) => `/p/${p.slug}`)]}
+        urls={[
+          "/",
+          "/stale",
+          "/offline",
+          "/cpptutor",
+          "/calendar",
+          ...all.map((p) => `/p/${p.slug}`),
+        ]}
       />
       <SectionHeader label="SYSTEM VITALS" sub="PORTFOLIO.LINK" />
       <VitalsBar vitals={vitals} />
