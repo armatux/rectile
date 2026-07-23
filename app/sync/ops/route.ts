@@ -10,16 +10,19 @@ import {
   addFeature,
   addLink,
   addLogEntry,
+  addReminder,
   createProject,
   deleteEvent,
   deleteFeature,
   deleteLink,
   deleteLogEntry,
+  deleteReminder,
   reorderFeatures,
   setKv,
   setProjectTags,
   updateFeature,
   updateProject,
+  updateReminder,
 } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +45,7 @@ type IdMaps = {
   log: Map<number, number>;
   link: Map<number, number>;
   event: Map<number, number>;
+  reminder: Map<number, number>;
 };
 
 function remap(map: Map<number, number>, id: number): number | null {
@@ -126,6 +130,27 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
       await deleteEvent(id);
       return;
     }
+    case "reminder.add": {
+      const r = await addReminder({
+        title: op.title,
+        notes: op.notes,
+        dueAt: op.dueAt ? new Date(op.dueAt) : null,
+      });
+      if (op.tempId) ids.reminder.set(op.tempId, r.id);
+      return;
+    }
+    case "reminder.toggle": {
+      const id = remap(ids.reminder, op.id);
+      if (id === null) throw new Error(`unknown temp reminder id ${op.id}`);
+      await updateReminder(id, { done: op.done });
+      return;
+    }
+    case "reminder.delete": {
+      const id = remap(ids.reminder, op.id);
+      if (id === null) throw new Error(`unknown temp reminder id ${op.id}`);
+      await deleteReminder(id);
+      return;
+    }
     case "kv.set":
       await setKv(op.key, op.value); // op.key is allowlisted by the schema
       return;
@@ -143,6 +168,7 @@ export async function POST(req: NextRequest) {
       log: new Map(),
       link: new Map(),
       event: new Map(),
+      reminder: new Map(),
     };
     const results: OpResult[] = [];
     const touched = new Set<string>();
@@ -160,6 +186,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/");
     revalidatePath("/stale");
     revalidatePath("/calendar");
+    revalidatePath("/reminders");
     for (const slug of touched) revalidatePath(`/p/${slug}`);
     return json({ results });
   } catch (err) {

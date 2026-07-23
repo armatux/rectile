@@ -61,6 +61,15 @@ export const opSchema = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("event.delete"), id }),
   z.object({
+    kind: z.literal("reminder.add"),
+    title: z.string().trim().min(1).max(300),
+    notes: z.string().max(5_000).optional(),
+    dueAt: z.string().optional(), // ISO — Dates don't survive IndexedDB→JSON round-trips
+    tempId: z.number().int().negative().optional(),
+  }),
+  z.object({ kind: z.literal("reminder.toggle"), id, done: z.boolean() }),
+  z.object({ kind: z.literal("reminder.delete"), id }),
+  z.object({
     kind: z.literal("kv.set"),
     key: z.enum(CLIENT_KV_KEYS),
     value: z.unknown(),

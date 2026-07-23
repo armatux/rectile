@@ -48,6 +48,7 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
           "/offline",
           "/cpptutor",
           "/calendar",
+          "/reminders",
           ...all.map((p) => `/p/${p.slug}`),
         ]}
       />

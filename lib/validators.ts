@@ -58,6 +58,21 @@ export const eventCreateSchema = z.object({
   allDay: z.boolean().optional(),
 });
 
+export const reminderCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  notes: z.string().max(5_000).optional(),
+  dueAt: z.coerce.date().optional(),
+});
+
+export const reminderUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(300),
+    notes: z.string().max(5_000).nullable(),
+    dueAt: z.coerce.date().nullable(),
+    done: z.boolean(),
+  })
+  .partial();
+
 export const tagCreateSchema = z.object({
   name: z.string().trim().min(1).max(50),
   color: z

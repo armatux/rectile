@@ -138,6 +138,41 @@ export const events = pgTable(
   (t) => [index("events_starts_idx").on(t.startsAt)],
 );
 
+/** Standalone reminders with an optional deadline. notifiedAt marks that the
+ *  deadline push was sent (re-armed when a reminder is un-done). */
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    done: boolean("done").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+  },
+  (t) => [index("reminders_due_idx").on(t.done, t.dueAt)],
+);
+
+/** Web Push subscriptions — one row per browser/device that enabled alerts. */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("push_subs_endpoint_idx").on(t.endpoint)],
+);
+
 /** Free-form JSON store for external integrations (e.g. cpptutor progress
  *  pushed by rectile_sync.py) — one row per widget/integration key. */
 export const kv = pgTable("kv", {
@@ -189,6 +224,8 @@ export const projectTagsRelations = relations(projectTags, ({ one }) => ({
 }));
 
 export type Project = typeof projects.$inferSelect;
+export type Reminder = typeof reminders.$inferSelect;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type Feature = typeof features.$inferSelect;
 export type LogEntry = typeof logEntries.$inferSelect;
 export type Link = typeof links.$inferSelect;

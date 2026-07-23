@@ -80,6 +80,41 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/* web push — reminder deadline alerts (lib/push.ts broadcasts the payload) */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: event.data && event.data.text() };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "rectile", {
+      body: data.body || "",
+      tag: data.tag,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url || "/reminders" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/reminders";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if (new URL(w.url).origin === self.location.origin) {
+          w.navigate(url);
+          return w.focus();
+        }
+      }
+      return clients.openWindow(url);
+    }),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;

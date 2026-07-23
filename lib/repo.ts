@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db";
 import {
   events,
@@ -8,6 +19,8 @@ import {
   logEntries,
   projects,
   projectTags,
+  pushSubscriptions,
+  reminders,
   tags,
   type Feature,
   type Link,
@@ -70,6 +83,126 @@ export async function addEvent(input: EventInput) {
 export async function deleteEvent(id: number): Promise<void> {
   const res = await db.delete(events).where(eq(events.id, id)).returning();
   if (!res.length) throw new NotFoundError(`no event ${id}`);
+}
+
+/* --------------------------------- reminders --------------------------------- */
+
+export type ReminderInput = {
+  title: string;
+  notes?: string;
+  dueAt?: Date | null;
+};
+
+export type ReminderPatch = {
+  title?: string;
+  notes?: string | null;
+  dueAt?: Date | null;
+  done?: boolean;
+};
+
+export async function listReminders() {
+  return db
+    .select()
+    .from(reminders)
+    .orderBy(
+      asc(reminders.done),
+      sql`${reminders.dueAt} ASC NULLS LAST`,
+      desc(reminders.createdAt),
+    );
+}
+
+export async function addReminder(input: ReminderInput) {
+  const [row] = await db
+    .insert(reminders)
+    .values({
+      title: input.title,
+      notes: input.notes ?? null,
+      dueAt: input.dueAt ?? null,
+    })
+    .returning();
+  return row;
+}
+
+export async function updateReminder(id: number, patch: ReminderPatch) {
+  const set: Partial<typeof reminders.$inferInsert> = {};
+  if (patch.title !== undefined) set.title = patch.title;
+  if (patch.notes !== undefined) set.notes = patch.notes;
+  if (patch.dueAt !== undefined) {
+    set.dueAt = patch.dueAt;
+    set.notifiedAt = null; // deadline changed — re-arm the push
+  }
+  if (patch.done !== undefined) {
+    set.done = patch.done;
+    set.completedAt = patch.done ? now() : null;
+    if (!patch.done) set.notifiedAt = null;
+  }
+  const res = await db
+    .update(reminders)
+    .set(set)
+    .where(eq(reminders.id, id))
+    .returning();
+  if (!res.length) throw new NotFoundError(`no reminder ${id}`);
+  return res[0];
+}
+
+export async function deleteReminder(id: number): Promise<void> {
+  const res = await db.delete(reminders).where(eq(reminders.id, id)).returning();
+  if (!res.length) throw new NotFoundError(`no reminder ${id}`);
+}
+
+/** Undone reminders whose deadline has passed and were not pushed yet. */
+export async function dueUnnotifiedReminders() {
+  return db
+    .select()
+    .from(reminders)
+    .where(
+      and(
+        eq(reminders.done, false),
+        isNull(reminders.notifiedAt),
+        isNotNull(reminders.dueAt),
+        lte(reminders.dueAt, now()),
+      ),
+    );
+}
+
+export async function markRemindersNotified(ids: number[]): Promise<void> {
+  if (!ids.length) return;
+  await db
+    .update(reminders)
+    .set({ notifiedAt: now() })
+    .where(inArray(reminders.id, ids));
+}
+
+/* ----------------------------- push subscriptions ----------------------------- */
+
+export async function savePushSubscription(sub: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string;
+}): Promise<void> {
+  await db
+    .insert(pushSubscriptions)
+    .values({
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      userAgent: sub.userAgent ?? null,
+    })
+    .onConflictDoUpdate({
+      target: pushSubscriptions.endpoint,
+      set: { p256dh: sub.p256dh, auth: sub.auth, userAgent: sub.userAgent ?? null },
+    });
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  await db
+    .delete(pushSubscriptions)
+    .where(eq(pushSubscriptions.endpoint, endpoint));
+}
+
+export async function listPushSubscriptions() {
+  return db.select().from(pushSubscriptions);
 }
 
 /* ------------------------------------ kv ------------------------------------ */
