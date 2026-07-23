@@ -66,9 +66,11 @@ const SORTS = [
 export function FilterBar({
   params,
   tags,
+  archivedCount = 0,
 }: {
   params: DashboardParams;
   tags: (Tag & { projectCount: number })[];
+  archivedCount?: number;
 }) {
   const router = useRouter();
   const [allTags, setAllTags] = useState(false);
@@ -91,7 +93,7 @@ export function FilterBar({
         <Chip href={buildHref(params, { status: undefined })} active={!params.status}>
           ALL
         </Chip>
-        {PROJECT_STATUSES.map((s) => (
+        {PROJECT_STATUSES.filter((s) => s !== "archived").map((s) => (
           <Chip
             key={s}
             href={buildHref(params, { status: params.status === s ? undefined : s })}
@@ -101,6 +103,11 @@ export function FilterBar({
             {s.toUpperCase().replace("_", " ")}
           </Chip>
         ))}
+        {archivedCount > 0 && (
+          <Chip href="/archive" active={false}>
+            ARCHIVE · {String(archivedCount).padStart(2, "0")} ▸
+          </Chip>
+        )}
         <label className="ml-auto flex items-center gap-2">
           <span className="hud-sublabel hidden sm:inline">SORT</span>
           <span className="relative">

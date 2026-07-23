@@ -28,15 +28,20 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
     tag: typeof sp.tag === "string" ? sp.tag : undefined,
     sort: typeof sp.sort === "string" ? sp.sort : undefined,
   };
-  const validStatus = PROJECT_STATUSES.find((s) => s === params.status);
+  const validStatus = PROJECT_STATUSES.find(
+    (s) => s === params.status && s !== "archived", // archived lives on /archive
+  );
   const [all, tags, tutor, dueSoon] = await Promise.all([
     listProjects({ sort: (params.sort as ListProjectsOpts["sort"]) ?? "staleness" }),
     listTags(),
     getKv<CpptutorProgress>("cpptutor_progress"),
     listOpenRemindersDue(new Date(Date.now() + 7 * 86_400_000)),
   ]);
-  const vitals = await getVitals(all);
-  const filtered = all.filter((p) => {
+  // archived projects live on /archive only — invisible to grid + vitals
+  const live = all.filter((p) => p.status !== "archived");
+  const archivedCount = all.length - live.length;
+  const vitals = await getVitals(live);
+  const filtered = live.filter((p) => {
     if (validStatus && p.status !== validStatus) return false;
     if (
       params.tag &&
@@ -59,6 +64,7 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
           "/reminders",
           "/review",
           "/share",
+          "/archive",
           ...all.map((p) => `/p/${p.slug}`),
         ]}
       />
@@ -86,7 +92,7 @@ export default async function Dashboard({ searchParams }: { searchParams: SP }) 
         label="PROJECT GRID"
         sub={`ROSTER.${String(filtered.length).padStart(2, "0")}`}
       />
-      <FilterBar params={params} tags={tags} />
+      <FilterBar params={params} tags={tags} archivedCount={archivedCount} />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p) => (
