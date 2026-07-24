@@ -82,7 +82,12 @@ function SearchBox() {
   );
 }
 
+/** Routes rendered as full-screen HUD (their chrome replaces the top bar). */
+const HUD_ROUTES = new Set(["/", "/calendar", "/mail"]);
+
 export function TopBar() {
+  const pathname = usePathname();
+  if (HUD_ROUTES.has(pathname)) return null;
   return (
     <header className="safe-x safe-top sticky top-0 z-30 border-b border-line bg-void/80 backdrop-blur-sm">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { SectionHeader } from "@/components/hud";
+import { HudChrome } from "@/components/hud/HudChrome";
+import { getHudChrome } from "@/lib/hud";
 import { Composer } from "@/components/mail/Composer";
 import {
   getAccount,
@@ -38,12 +40,15 @@ export default async function MailPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const accounts = mailAccounts();
   const acc = getAccount(typeof sp.a === "string" ? sp.a : undefined);
+  const chrome = await getHudChrome();
   if (!acc) {
     return (
-      <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="MAIL" sub="SETUP" />
-        <SetupPanel />
-      </div>
+      <HudChrome data={chrome} mode="mail">
+        <div className="flex flex-col gap-6">
+          <SectionHeader label="MAIL" sub="SETUP" />
+          <SetupPanel />
+        </div>
+      </HudChrome>
     );
   }
   const folderParam = typeof sp.f === "string" ? sp.f.slice(0, 200) : "INBOX";
@@ -60,15 +65,17 @@ export default async function MailPage({ searchParams }: { searchParams: SP }) {
     ]);
   } catch (err) {
     return (
-      <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="MAIL" sub="LINK.DOWN" />
-        <div className="hud-panel max-w-2xl p-6 text-[11.5px] leading-relaxed text-ink/60">
-          <span className="mb-2 block text-[10px] font-bold tracking-[0.24em] text-danger">
-            {acc.label} UNREACHABLE
-          </span>
-          {acc.host}:{acc.imapPort} — {String((err as Error)?.message ?? err)}
+      <HudChrome data={chrome} mode="mail">
+        <div className="flex flex-col gap-6">
+          <SectionHeader label="MAIL" sub="LINK.DOWN" />
+          <div className="hud-panel max-w-2xl p-6 text-[11.5px] leading-relaxed text-ink/60">
+            <span className="mb-2 block text-[10px] font-bold tracking-[0.24em] text-danger">
+              {acc.label} UNREACHABLE
+            </span>
+            {acc.host}:{acc.imapPort} — {String((err as Error)?.message ?? err)}
+          </div>
         </div>
-      </div>
+      </HudChrome>
     );
   }
 
@@ -84,7 +91,8 @@ export default async function MailPage({ searchParams }: { searchParams: SP }) {
   };
 
   return (
-    <div className="flex flex-col gap-6 pt-5">
+    <HudChrome data={chrome} mode="mail">
+    <div className="flex flex-col gap-6 lg:pb-4">
       <SectionHeader
         label="MAIL"
         sub={`${acc.label} · ${current?.name.toUpperCase() ?? folderParam}${
@@ -187,5 +195,6 @@ export default async function MailPage({ searchParams }: { searchParams: SP }) {
         </section>
       </div>
     </div>
+    </HudChrome>
   );
 }

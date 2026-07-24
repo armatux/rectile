@@ -462,6 +462,7 @@ export type ProjectSummary = Project & {
   featuresBuilt: number;
   featuresInProgress: number;
   nextAction: string | null;
+  nextActionFeatureId: number | null;
 };
 
 export type ProjectDetail = ProjectSummary & {
@@ -492,6 +493,7 @@ function summarize(
     featuresBuilt: fs.filter((f) => f.status === "built").length,
     featuresInProgress: inProgress.length,
     nextAction: inProgress[0]?.title ?? planned[0]?.title ?? null,
+    nextActionFeatureId: inProgress[0]?.id ?? planned[0]?.id ?? null,
   };
 }
 

@@ -1,6 +1,8 @@
 import { SectionHeader } from "@/components/hud";
+import { HudChrome } from "@/components/hud/HudChrome";
 import { CalendarView, type CalEvent } from "@/components/calendar/CalendarView";
 import { SubscriptionsPanel, type CalSub } from "@/components/calendar/SubscriptionsPanel";
+import { getHudChrome } from "@/lib/hud";
 import { parseIcs } from "@/lib/ics";
 import { getKv, listEvents, listOpenRemindersDue } from "@/lib/repo";
 
@@ -29,10 +31,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: SP 
   end.setUTCDate(last.getUTCDate() + (7 - ((last.getUTCDay() + 6) % 7)) % 7);
   end.setUTCHours(23, 59, 59);
 
-  const [local, subsEntry, deadlines] = await Promise.all([
+  const [local, subsEntry, deadlines, chrome] = await Promise.all([
     listEvents(start, end),
     getKv<CalSub[]>("calendar_subscriptions"),
     listOpenRemindersDue(end, start),
+    getHudChrome(),
   ]);
   const subs = subsEntry?.value ?? [];
 
@@ -88,15 +91,17 @@ export default async function CalendarPage({ searchParams }: { searchParams: SP 
   const monthISO = `${year}-${String(month + 1).padStart(2, "0")}`;
 
   return (
-    <div className="flex flex-col gap-6 pt-5">
-      <SectionHeader label="CALENDAR" sub={monthISO} />
-      <CalendarView
-        monthISO={monthISO}
-        gridStart={start.toISOString()}
-        events={events}
-      />
-      <SectionHeader label="SUBSCRIPTIONS" sub={`×${subs.length}`} />
-      <SubscriptionsPanel subs={subs} errors={subErrors} />
-    </div>
+    <HudChrome data={chrome} mode="cal">
+      <div className="flex flex-col gap-6 lg:pb-4">
+        <SectionHeader label="CALENDAR" sub={monthISO} />
+        <CalendarView
+          monthISO={monthISO}
+          gridStart={start.toISOString()}
+          events={events}
+        />
+        <SectionHeader label="SUBSCRIPTIONS" sub={`×${subs.length}`} />
+        <SubscriptionsPanel subs={subs} errors={subErrors} />
+      </div>
+    </HudChrome>
   );
 }
