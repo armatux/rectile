@@ -19,6 +19,7 @@ export default async function Dashboard() {
           "/review",
           "/share",
           "/archive",
+          "/vault",
           ...chrome.projects.map((p) => `/p/${p.slug}`),
         ]}
       />

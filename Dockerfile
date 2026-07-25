@@ -29,6 +29,9 @@ COPY --from=builder /app/public ./public
 # migrations are applied on boot by the instrumentation hook
 COPY --from=builder /app/drizzle ./drizzle
 
+# vault storage (bind: named volume "filedata") — owned by the app user
+RUN mkdir -p /app/data/files && chown -R nextjs:nodejs /app/data
+
 USER nextjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \

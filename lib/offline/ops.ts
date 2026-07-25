@@ -1,15 +1,20 @@
 import { z } from "zod";
 import {
+  docCreateSchema,
+  docUpdateSchema,
   eventCreateSchema,
   featureStatusSchema,
+  featureUpdateSchema,
   linkCreateSchema,
+  linkUpdateSchema,
   logCreateSchema,
   projectCreateSchema,
   projectUpdateSchema,
+  repeatSchema,
 } from "@/lib/validators";
 
 /** kv keys the browser is allowed to write via the ops queue */
-export const CLIENT_KV_KEYS = ["calendar_subscriptions"] as const;
+export const CLIENT_KV_KEYS = ["calendar_subscriptions", "app_launcher"] as const;
 
 /**
  * Operations the offline write queue can capture and replay.
@@ -41,18 +46,38 @@ export const opSchema = z.discriminatedUnion("kind", [
     orderedIds: z.array(id).max(500).optional(),
   }),
   z.object({ kind: z.literal("feature.delete"), slug, id }),
+  z.object({
+    kind: z.literal("feature.update"),
+    slug,
+    id,
+    patch: featureUpdateSchema.omit({ status: true, sortOrder: true }),
+  }),
   logCreateSchema.extend({
     kind: z.literal("log.add"),
     slug,
     tempId: z.number().int().negative().optional(),
   }),
   z.object({ kind: z.literal("log.delete"), slug, id }),
+  z.object({
+    kind: z.literal("log.update"),
+    slug,
+    id,
+    body: z.string().trim().min(1).max(20_000),
+  }),
   linkCreateSchema.extend({
     kind: z.literal("link.add"),
     slug,
     tempId: z.number().int().negative().optional(),
   }),
   z.object({ kind: z.literal("link.delete"), slug, id }),
+  z.object({ kind: z.literal("link.update"), slug, id, patch: linkUpdateSchema }),
+  docCreateSchema.extend({
+    kind: z.literal("doc.add"),
+    slug,
+    tempId: z.number().int().negative().optional(),
+  }),
+  z.object({ kind: z.literal("doc.update"), slug, id, patch: docUpdateSchema }),
+  z.object({ kind: z.literal("doc.delete"), slug, id }),
   eventCreateSchema.extend({
     kind: z.literal("event.add"),
     startsAt: z.string(), // ISO — Dates don't survive IndexedDB→JSON round-trips
@@ -60,6 +85,19 @@ export const opSchema = z.discriminatedUnion("kind", [
     tempId: z.number().int().negative().optional(),
   }),
   z.object({ kind: z.literal("event.delete"), id }),
+  z.object({
+    kind: z.literal("event.update"),
+    id,
+    patch: z
+      .object({
+        title: z.string().trim().min(1).max(300),
+        notes: z.string().max(5_000).nullable(),
+        startsAt: z.string(), // ISO — Dates don't survive IndexedDB→JSON round-trips
+        endsAt: z.string().nullable(),
+        allDay: z.boolean(),
+      })
+      .partial(),
+  }),
   z.object({
     kind: z.literal("reminder.add"),
     title: z.string().trim().min(1).max(300),
@@ -71,6 +109,18 @@ export const opSchema = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("reminder.toggle"), id, done: z.boolean() }),
   z.object({ kind: z.literal("reminder.delete"), id }),
+  z.object({
+    kind: z.literal("reminder.update"),
+    id,
+    patch: z
+      .object({
+        title: z.string().trim().min(1).max(300),
+        notes: z.string().max(5_000).nullable(),
+        dueAt: z.string().nullable(), // ISO
+        repeat: repeatSchema.nullable(),
+      })
+      .partial(),
+  }),
   z.object({
     kind: z.literal("kv.set"),
     key: z.enum(CLIENT_KV_KEYS),

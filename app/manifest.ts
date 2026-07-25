@@ -31,5 +31,12 @@ export default function manifest(): MetadataRoute.Manifest {
       method: "GET",
       params: { title: "title", text: "text", url: "url" },
     },
+    // long-press app icon → jump straight into a mode (Android/desktop PWA)
+    shortcuts: [
+      { name: "Calendar", url: "/calendar", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Mail", url: "/mail", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Reminders", url: "/reminders", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Vault", url: "/vault", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+    ],
   } as MetadataRoute.Manifest;
 }

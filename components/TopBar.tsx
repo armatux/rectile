@@ -110,6 +110,7 @@ export function TopBar() {
           <NavLink href="/calendar" label="CAL" />
           <NavLink href="/reminders" label="REMS" />
           <NavLink href="/review" label="WEEK" />
+          <NavLink href="/vault" label="VAULT" />
           <NavLink href="/mail" label="MAIL" />
         </nav>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-4 sm:flex-none">

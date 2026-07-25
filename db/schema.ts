@@ -186,6 +186,47 @@ export const pushSubscriptions = pgTable(
   (t) => [uniqueIndex("push_subs_endpoint_idx").on(t.endpoint)],
 );
 
+/** Uploaded files (the vault). Bytes live on disk under RECTILE_FILES_DIR
+ *  keyed by row id; this table is the metadata index. Uploads are streamed
+ *  (never buffered) and are online-only — blobs don't ride the ops queue. */
+export const files = pgTable(
+  "files",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    mime: text("mime").notNull().default("application/octet-stream"),
+    size: integer("size").notNull(),
+    sha256: text("sha256").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("files_project_idx").on(t.projectId)],
+);
+
+/** Per-project markdown documentation pages. */
+export const docs = pgTable(
+  "docs",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("docs_project_idx").on(t.projectId)],
+);
+
 /** Free-form JSON store for external integrations (e.g. cpptutor progress
  *  pushed by rectile_sync.py) — one row per widget/integration key. */
 export const kv = pgTable("kv", {
@@ -236,6 +277,8 @@ export const projectTagsRelations = relations(projectTags, ({ one }) => ({
   tag: one(tags, { fields: [projectTags.tagId], references: [tags.id] }),
 }));
 
+export type FileMeta = typeof files.$inferSelect;
+export type Doc = typeof docs.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type Reminder = typeof reminders.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;

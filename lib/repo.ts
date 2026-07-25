@@ -13,8 +13,10 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  docs,
   events,
   features,
+  files,
   kv,
   links,
   logEntries,
@@ -23,7 +25,9 @@ import {
   pushSubscriptions,
   reminders,
   tags,
+  type Doc,
   type Feature,
+  type FileMeta,
   type Link,
   type LogEntry,
   type Project,
@@ -103,6 +107,35 @@ export async function addEvent(input: EventInput) {
 export async function deleteEvent(id: number): Promise<void> {
   const res = await db.delete(events).where(eq(events.id, id)).returning();
   if (!res.length) throw new NotFoundError(`no event ${id}`);
+}
+
+export type EventPatch = {
+  title?: string;
+  notes?: string | null;
+  startsAt?: Date;
+  endsAt?: Date | null;
+  allDay?: boolean;
+};
+
+export async function updateEvent(id: number, patch: EventPatch) {
+  const old = await db.query.events.findFirst({ where: eq(events.id, id) });
+  if (!old) throw new NotFoundError(`no event ${id}`);
+  const [row] = await db.update(events).set(patch).where(eq(events.id, id)).returning();
+  // keep a linked lead-time reminder aligned with the (possibly moved) start
+  if (patch.startsAt || patch.title) {
+    const linked = await db.query.reminders.findFirst({ where: eq(reminders.eventId, id) });
+    if (linked) {
+      const set: { title?: string; dueAt?: Date } = {};
+      if (patch.title) set.title = patch.title;
+      if (patch.startsAt && linked.dueAt) {
+        const leadMs = old.startsAt.getTime() - linked.dueAt.getTime();
+        set.dueAt = new Date(patch.startsAt.getTime() - leadMs);
+      }
+      if (Object.keys(set).length)
+        await db.update(reminders).set(set).where(eq(reminders.id, linked.id));
+    }
+  }
+  return row;
 }
 
 /* --------------------------------- reminders --------------------------------- */
@@ -558,7 +591,7 @@ export async function getProjectDetail(slug: string): Promise<ProjectDetail> {
   return { ...summarize(core), features: core.features, logEntries: logs, links: lnks };
 }
 
-async function requireProject(slug: string): Promise<Project> {
+export async function requireProject(slug: string): Promise<Project> {
   const p = await db.query.projects.findFirst({ where: eq(projects.slug, slug) });
   if (!p) throw new NotFoundError(`project not found: ${slug}`);
   return p;
@@ -783,6 +816,114 @@ export async function addLogEntry(slug: string, body: string): Promise<LogEntry>
 export async function deleteLogEntry(id: number): Promise<void> {
   const res = await db.delete(logEntries).where(eq(logEntries.id, id)).returning();
   if (!res.length) throw new NotFoundError(`log entry not found: ${id}`);
+}
+
+export async function updateLogEntry(id: number, body: string): Promise<LogEntry> {
+  const [row] = await db
+    .update(logEntries)
+    .set({ body })
+    .where(eq(logEntries.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`log entry not found: ${id}`);
+  return row;
+}
+
+/* ------------------------------------ docs ----------------------------------- */
+
+export async function listDocs(projectId: number): Promise<Doc[]> {
+  return db.query.docs.findMany({
+    where: eq(docs.projectId, projectId),
+    orderBy: [asc(docs.createdAt)],
+  });
+}
+
+export async function getDoc(id: number): Promise<Doc> {
+  const d = await db.query.docs.findFirst({ where: eq(docs.id, id) });
+  if (!d) throw new NotFoundError(`doc not found: ${id}`);
+  return d;
+}
+
+export async function addDoc(
+  slug: string,
+  input: { title: string; body?: string },
+): Promise<Doc> {
+  const p = await requireProject(slug);
+  const [row] = await db
+    .insert(docs)
+    .values({ projectId: p.id, title: input.title, body: input.body ?? "" })
+    .returning();
+  await touch(p.id);
+  return row;
+}
+
+export async function updateDoc(
+  id: number,
+  patch: { title?: string; body?: string },
+): Promise<Doc> {
+  const [row] = await db
+    .update(docs)
+    .set({ ...patch, updatedAt: now() })
+    .where(eq(docs.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`doc not found: ${id}`);
+  await touch(row.projectId);
+  return row;
+}
+
+export async function deleteDoc(id: number): Promise<void> {
+  const res = await db.delete(docs).where(eq(docs.id, id)).returning();
+  if (!res.length) throw new NotFoundError(`doc not found: ${id}`);
+}
+
+/* ------------------------------------ files ---------------------------------- */
+
+export type FileWithProject = FileMeta & { projectName: string | null; projectSlug: string | null };
+
+export async function listFiles(projectId?: number): Promise<FileWithProject[]> {
+  const rows = await db
+    .select({
+      f: files,
+      projectName: projects.name,
+      projectSlug: projects.slug,
+    })
+    .from(files)
+    .leftJoin(projects, eq(files.projectId, projects.id))
+    .where(projectId === undefined ? undefined : eq(files.projectId, projectId))
+    .orderBy(desc(files.createdAt));
+  return rows.map((r) => ({ ...r.f, projectName: r.projectName, projectSlug: r.projectSlug }));
+}
+
+export async function getFileMeta(id: number): Promise<FileMeta> {
+  const f = await db.query.files.findFirst({ where: eq(files.id, id) });
+  if (!f) throw new NotFoundError(`file not found: ${id}`);
+  return f;
+}
+
+export async function addFileMeta(input: {
+  projectId: number | null;
+  name: string;
+  mime: string;
+  size: number;
+  sha256: string;
+}): Promise<FileMeta> {
+  const [row] = await db.insert(files).values(input).returning();
+  if (input.projectId) await touch(input.projectId);
+  return row;
+}
+
+/** Update size/hash once the bytes are on disk (row is created first so the
+ *  upload can stream to its final id-keyed path). */
+export async function finalizeFileMeta(
+  id: number,
+  patch: { size: number; sha256: string },
+): Promise<void> {
+  await db.update(files).set(patch).where(eq(files.id, id));
+}
+
+export async function deleteFileMeta(id: number): Promise<FileMeta> {
+  const [row] = await db.delete(files).where(eq(files.id, id)).returning();
+  if (!row) throw new NotFoundError(`file not found: ${id}`);
+  return row;
 }
 
 /* ------------------------------------ links ---------------------------------- */

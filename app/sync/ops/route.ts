@@ -6,12 +6,14 @@ import { projects } from "@/db/schema";
 import { handleError, json } from "@/lib/api";
 import { opsBatchSchema, type Op, type OpResult } from "@/lib/offline/ops";
 import {
+  addDoc,
   addEvent,
   addFeature,
   addLink,
   addLogEntry,
   addReminder,
   createProject,
+  deleteDoc,
   deleteEvent,
   deleteFeature,
   deleteLink,
@@ -20,7 +22,11 @@ import {
   reorderFeatures,
   setKv,
   setProjectTags,
+  updateDoc,
+  updateEvent,
   updateFeature,
+  updateLink,
+  updateLogEntry,
   updateProject,
   updateReminder,
 } from "@/lib/repo";
@@ -46,6 +52,7 @@ type IdMaps = {
   link: Map<number, number>;
   event: Map<number, number>;
   reminder: Map<number, number>;
+  doc: Map<number, number>;
 };
 
 function remap(map: Map<number, number>, id: number): number | null {
@@ -91,6 +98,12 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
       await deleteFeature(id);
       return;
     }
+    case "feature.update": {
+      const id = remap(ids.feature, op.id);
+      if (id === null) throw new Error(`unknown temp feature id ${op.id}`);
+      await updateFeature(id, op.patch);
+      return;
+    }
     case "log.add": {
       const l = await addLogEntry(op.slug, op.body);
       if (op.tempId) ids.log.set(op.tempId, l.id);
@@ -113,6 +126,35 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
       await deleteLink(id);
       return;
     }
+    case "link.update": {
+      const id = remap(ids.link, op.id);
+      if (id === null) throw new Error(`unknown temp link id ${op.id}`);
+      await updateLink(id, op.patch);
+      return;
+    }
+    case "log.update": {
+      const id = remap(ids.log, op.id);
+      if (id === null) throw new Error(`unknown temp log id ${op.id}`);
+      await updateLogEntry(id, op.body);
+      return;
+    }
+    case "doc.add": {
+      const d = await addDoc(op.slug, { title: op.title, body: op.body });
+      if (op.tempId) ids.doc.set(op.tempId, d.id);
+      return;
+    }
+    case "doc.update": {
+      const id = remap(ids.doc, op.id);
+      if (id === null) throw new Error(`unknown temp doc id ${op.id}`);
+      await updateDoc(id, op.patch);
+      return;
+    }
+    case "doc.delete": {
+      const id = remap(ids.doc, op.id);
+      if (id === null) throw new Error(`unknown temp doc id ${op.id}`);
+      await deleteDoc(id);
+      return;
+    }
     case "event.add": {
       const e = await addEvent({
         title: op.title,
@@ -129,6 +171,17 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
       const id = remap(ids.event, op.id);
       if (id === null) throw new Error(`unknown temp event id ${op.id}`);
       await deleteEvent(id);
+      return;
+    }
+    case "event.update": {
+      const id = remap(ids.event, op.id);
+      if (id === null) throw new Error(`unknown temp event id ${op.id}`);
+      const { startsAt, endsAt, ...rest } = op.patch;
+      await updateEvent(id, {
+        ...rest,
+        ...(startsAt !== undefined ? { startsAt: new Date(startsAt) } : {}),
+        ...(endsAt !== undefined ? { endsAt: endsAt === null ? null : new Date(endsAt) } : {}),
+      });
       return;
     }
     case "reminder.add": {
@@ -154,6 +207,16 @@ async function applyOp(op: Op, ids: IdMaps): Promise<void> {
       await deleteReminder(id);
       return;
     }
+    case "reminder.update": {
+      const id = remap(ids.reminder, op.id);
+      if (id === null) throw new Error(`unknown temp reminder id ${op.id}`);
+      const { dueAt, ...rest } = op.patch;
+      await updateReminder(id, {
+        ...rest,
+        ...(dueAt !== undefined ? { dueAt: dueAt === null ? null : new Date(dueAt) } : {}),
+      });
+      return;
+    }
     case "kv.set":
       await setKv(op.key, op.value); // op.key is allowlisted by the schema
       return;
@@ -172,6 +235,7 @@ export async function POST(req: NextRequest) {
       link: new Map(),
       event: new Map(),
       reminder: new Map(),
+      doc: new Map(),
     };
     const results: OpResult[] = [];
     const touched = new Set<string>();

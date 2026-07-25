@@ -42,6 +42,11 @@ export type HudTutor = {
   updatedAt: string;
 };
 
+export type LauncherApp = {
+  label: string;
+  url: string;
+};
+
 /** Everything the HUD chrome (sidebar + topline + voice dock) needs. */
 export type HudChromeData = {
   projects: HudProject[]; // non-archived, stalest first
@@ -50,4 +55,5 @@ export type HudChromeData = {
   upcoming: HudUpcoming[]; // next 14 days, soonest first
   mailUnread: number | null; // null = mail link down / not configured
   briefs: string[]; // rotating assistant one-liners, real data
+  launcher: LauncherApp[]; // user-defined quick links (kv "app_launcher")
 };

@@ -60,6 +60,20 @@ export function RoadmapBoard({
   });
   const [pendingDelete, setPendingDelete] = useState<number | null>(null);
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+
+  function saveEdit(id: number) {
+    const title = editTitle.trim();
+    setEditId(null);
+    if (!title || features.find((f) => f.id === id)?.title === title) return;
+    setFeatures((fs) => fs.map((f) => (f.id === id ? { ...f, title } : f)));
+    startTransition(async () => {
+      if (await submitOp({ kind: "feature.update", slug, id, patch: { title } })) {
+        router.refresh();
+      }
+    });
+  }
 
   useEffect(() => setFeatures(initialFeatures), [initialFeatures]);
 
@@ -259,13 +273,33 @@ export function RoadmapBoard({
                       />
                     </button>
                     <div className="min-w-0 flex-1 cursor-grab py-2 active:cursor-grabbing">
-                      <p
-                        className={`text-[11.5px] leading-snug ${
-                          f.status === "built" ? "text-ink/50" : "text-ink"
-                        }`}
-                      >
-                        {f.title}
-                      </p>
+                      {editId === f.id ? (
+                        <input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onBlur={() => saveEdit(f.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit(f.id);
+                            if (e.key === "Escape") setEditId(null);
+                          }}
+                          maxLength={300}
+                          autoFocus
+                          className="w-full border-b border-line-strong bg-transparent text-[11.5px] leading-snug text-bright focus:outline-none"
+                        />
+                      ) : (
+                        <p
+                          onDoubleClick={() => {
+                            setEditId(f.id);
+                            setEditTitle(f.title);
+                          }}
+                          title="double-click to edit"
+                          className={`text-[11.5px] leading-snug ${
+                            f.status === "built" ? "text-ink/50" : "text-ink"
+                          }`}
+                        >
+                          {f.title}
+                        </p>
+                      )}
                       {f.description && (
                         <p className="mt-0.5 truncate text-[9.5px] text-ink/35">{f.description}</p>
                       )}
@@ -275,6 +309,16 @@ export function RoadmapBoard({
                         </p>
                       )}
                     </div>
+                    <button
+                      onClick={() => {
+                        setEditId(f.id);
+                        setEditTitle(f.title);
+                      }}
+                      className="flex h-11 w-7 flex-none items-center justify-center text-[10px] text-ink/25 transition-colors hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+                      aria-label="edit feature title"
+                    >
+                      ✎
+                    </button>
                     <button
                       onClick={() => requestDelete(f.id)}
                       className={`flex h-11 w-9 flex-none items-center justify-center text-[11px] transition-colors ${

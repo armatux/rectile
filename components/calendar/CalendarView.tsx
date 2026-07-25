@@ -58,13 +58,24 @@ export function CalendarView({
   const [removedIds, setRemovedIds] = useState<Set<number>>(new Set());
   const [title, setTitle] = useState("");
   const [time, setTime] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [patchedEvents, setPatchedEvents] = useState<
+    Map<number, Partial<CalEvent>>
+  >(new Map());
 
   const events = useMemo(
     () =>
       [...serverEvents, ...localAdds]
         .filter((e) => !(e.id !== undefined && removedIds.has(e.id)))
+        .map((e) =>
+          e.id !== undefined && patchedEvents.has(e.id)
+            ? { ...e, ...patchedEvents.get(e.id)! }
+            : e,
+        )
         .sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
-    [serverEvents, localAdds, removedIds],
+    [serverEvents, localAdds, removedIds, patchedEvents],
   );
 
   const byDay = useMemo(() => {
@@ -136,6 +147,28 @@ export function CalendarView({
     setLocalAdds((ls) => ls.filter((x) => x.id !== id));
     startTransition(async () => {
       if (await submitOp({ kind: "event.delete", id })) router.refresh();
+    });
+  }
+
+  function saveEventEdit(e: CalEvent) {
+    const t = editTitle.trim();
+    setEditId(null);
+    if (!t || e.id === undefined) return;
+    const startsAt = editTime
+      ? new Date(`${selected}T${editTime}:00`).toISOString()
+      : new Date(`${selected}T00:00:00`).toISOString();
+    const allDay = !editTime;
+    setPatchedEvents((m) => new Map(m).set(e.id!, { title: t, startsAt, allDay }));
+    startTransition(async () => {
+      if (
+        await submitOp({
+          kind: "event.update",
+          id: e.id!,
+          patch: { title: t, startsAt, allDay },
+        })
+      ) {
+        router.refresh();
+      }
     });
   }
 
@@ -237,29 +270,72 @@ export function CalendarView({
           )}
           {selectedEvents.map((e, i) => (
             <div key={e.id ?? e.uid ?? i} className="group flex items-baseline gap-2">
-              <span className="w-11 flex-none text-[9.5px] tabular-nums text-ink/50">
-                {e.allDay ? "DAY" : fmtTime(e.startsAt)}
-              </span>
-              <span
-                className="min-w-0 flex-1 truncate text-[11.5px]"
-                style={{ color: eventColor(e, "var(--color-ink)") }}
-                title={e.notes}
-              >
-                {e.title}
-                {e.subLabel && (
-                  <span className="ml-2 text-[8.5px] tracking-[0.14em] text-ink/35">
-                    {e.subLabel.toUpperCase()}
+              {e.id !== undefined && editId === e.id ? (
+                <span className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
+                  <input
+                    type="time"
+                    value={editTime}
+                    onChange={(ev) => setEditTime(ev.target.value)}
+                    className="min-h-[34px] w-24 flex-none border border-line bg-panel/70 px-1.5 text-[10.5px] text-bright focus:outline-none [color-scheme:dark]"
+                    aria-label="event time (empty = all day)"
+                  />
+                  <input
+                    value={editTitle}
+                    onChange={(ev) => setEditTitle(ev.target.value)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter") saveEventEdit(e);
+                      if (ev.key === "Escape") setEditId(null);
+                    }}
+                    autoFocus
+                    className="min-w-0 flex-1 border-b border-line-strong bg-transparent text-[11.5px] text-bright focus:outline-none"
+                  />
+                  <button
+                    onClick={() => saveEventEdit(e)}
+                    className="min-h-[34px] flex-none border border-line-strong px-2.5 text-[8.5px] font-bold tracking-[0.18em] text-accent hover:bg-accent/10"
+                  >
+                    SAVE
+                  </button>
+                </span>
+              ) : (
+                <>
+                  <span className="w-11 flex-none text-[9.5px] tabular-nums text-ink/50">
+                    {e.allDay ? "DAY" : fmtTime(e.startsAt)}
                   </span>
-                )}
-              </span>
-              {e.source === "local" && e.id !== undefined && (
-                <button
-                  onClick={() => removeEvent(e.id!)}
-                  className="h-7 w-7 flex-none text-[11px] text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
-                  aria-label={`delete ${e.title}`}
-                >
-                  ×
-                </button>
+                  <span
+                    className="min-w-0 flex-1 truncate text-[11.5px]"
+                    style={{ color: eventColor(e, "var(--color-ink)") }}
+                    title={e.notes}
+                  >
+                    {e.title}
+                    {e.subLabel && (
+                      <span className="ml-2 text-[8.5px] tracking-[0.14em] text-ink/35">
+                        {e.subLabel.toUpperCase()}
+                      </span>
+                    )}
+                  </span>
+                </>
+              )}
+              {e.source === "local" && e.id !== undefined && editId !== e.id && (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditId(e.id!);
+                      setEditTitle(e.title);
+                      setEditTime(e.allDay ? "" : fmtTime(e.startsAt));
+                    }}
+                    className="h-7 w-6 flex-none text-[10px] text-ink/20 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+                    aria-label={`edit ${e.title}`}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={() => removeEvent(e.id!)}
+                    className="h-7 w-7 flex-none text-[11px] text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
+                    aria-label={`delete ${e.title}`}
+                  >
+                    ×
+                  </button>
+                </>
               )}
             </div>
           ))}

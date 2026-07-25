@@ -37,6 +37,7 @@ services:
     volumes:
       - /run/rectile-mail:/mailbridge
       - /run/cpptutor:/bridge
+      - filedata:/app/data/files
     ports:
       # cloudflared on the same host connects to 127.0.0.1:3000;
       # widen to "3000:3000" if the tunnel runs elsewhere on the LAN
@@ -79,3 +80,4 @@ services:
 
 volumes:
   pgdata:
+  filedata:

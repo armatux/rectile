@@ -52,6 +52,18 @@ export function queueCount(): Promise<number> {
 export async function enqueue(op: Op): Promise<void> {
   await tx("readwrite", (s) => s.add(op));
   await emit();
+  // Background Sync (Chromium): if every tab closes before the link returns,
+  // the SW flushes the queue as soon as the device reconnects.
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    await (
+      reg as ServiceWorkerRegistration & {
+        sync?: { register(tag: string): Promise<void> };
+      }
+    )?.sync?.register("rectile-flush");
+  } catch {
+    /* unsupported (Firefox/iOS) — queue still flushes on next visit */
+  }
 }
 
 export function isOffline(): boolean {

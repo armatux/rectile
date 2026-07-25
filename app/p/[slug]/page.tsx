@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DocsPanel, type DocDTO } from "@/components/DocsPanel";
+import { FilesPanel, type FileDTO } from "@/components/FilesPanel";
 import { LogFeed } from "@/components/LogFeed";
+import { ProjectIdentity } from "@/components/ProjectIdentity";
 import { RoadmapBoard } from "@/components/RoadmapBoard";
 import {
   LinksPanel,
@@ -14,8 +17,11 @@ import {
   Staleness,
   StatusBadge,
 } from "@/components/hud";
+import { renderMarkdown } from "@/lib/markdown";
 import {
   getProjectDetail,
+  listDocs,
+  listFiles,
   listProjectReminders,
   listTags,
   NotFoundError,
@@ -44,10 +50,26 @@ export default async function ProjectPage({ params }: { params: Params }) {
     if (err instanceof NotFoundError) notFound();
     throw err;
   }
-  const [allTags, reminders] = await Promise.all([
+  const [allTags, reminders, docs, projFiles] = await Promise.all([
     listTags(),
     listProjectReminders(project.id),
+    listDocs(project.id),
+    listFiles(project.id),
   ]);
+  const docDTOs: DocDTO[] = docs.map((d) => ({
+    id: d.id,
+    title: d.title,
+    body: d.body,
+    updatedAt: d.updatedAt.toISOString(),
+  }));
+  const renderedById = Object.fromEntries(docs.map((d) => [d.id, renderMarkdown(d.body)]));
+  const fileDTOs: FileDTO[] = projFiles.map((f) => ({
+    id: f.id,
+    name: f.name,
+    mime: f.mime,
+    size: f.size,
+    createdAt: f.createdAt.toISOString(),
+  }));
 
   const featureDTOs = project.features.map((f) => ({
     id: f.id,
@@ -66,17 +88,16 @@ export default async function ProjectPage({ params }: { params: Params }) {
   return (
     <div className="flex flex-col gap-6 pt-5">
       <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1
-            className="font-display text-[24px] font-bold tracking-[0.04em] text-bright sm:text-[30px]"
-            style={{ textShadow: "0 0 22px rgb(150 110 255 / 0.4)" }}
-          >
-            {project.name}
-          </h1>
+        <ProjectIdentity
+          slug={project.slug}
+          name={project.name}
+          description={project.description}
+          category={project.category}
+        >
           <PriorityMark priority={project.priority} />
           <StatusBadge status={project.status} />
           <Staleness lastTouchedAt={project.lastTouchedAt} withLabel />
-        </div>
+        </ProjectIdentity>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] tracking-[0.18em] text-ink/40">
           {project.category && <span>CAT · {project.category.toUpperCase()}</span>}
           <span>
@@ -87,11 +108,6 @@ export default async function ProjectPage({ params }: { params: Params }) {
           </span>
           <span className="text-ink/25">/{project.slug}</span>
         </div>
-        {project.description && (
-          <p className="max-w-2xl text-[12px] leading-relaxed text-ink/65">
-            {project.description}
-          </p>
-        )}
       </header>
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_300px]">
@@ -99,6 +115,13 @@ export default async function ProjectPage({ params }: { params: Params }) {
           <div className="flex flex-col gap-3">
             <SectionHeader label="ROADMAP" sub="BUILT.VS.PLANNED" />
             <RoadmapBoard slug={project.slug} initialFeatures={featureDTOs} />
+          </div>
+          <div className="flex flex-col gap-3">
+            <SectionHeader
+              label="DOCS"
+              sub={`PAGES.${String(docDTOs.length).padStart(2, "0")}`}
+            />
+            <DocsPanel slug={project.slug} docs={docDTOs} renderedById={renderedById} />
           </div>
           <div className="flex flex-col gap-3">
             <SectionHeader label="LOG" sub="REVERSE.CHRONO" />
@@ -118,6 +141,13 @@ export default async function ProjectPage({ params }: { params: Params }) {
             all={allTags.map((t) => t.name)}
           />
           <LinksPanel slug={project.slug} links={project.links} />
+          <div className="flex flex-col gap-2">
+            <SectionHeader
+              label="FILES"
+              sub={`VAULT.${String(fileDTOs.length).padStart(2, "0")}`}
+            />
+            <FilesPanel files={fileDTOs} projectSlug={project.slug} />
+          </div>
           {reminders.length > 0 && (
             <div className="flex flex-col gap-2">
               <SectionHeader

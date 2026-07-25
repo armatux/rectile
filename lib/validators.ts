@@ -60,6 +60,28 @@ export const eventCreateSchema = z.object({
   remindBeforeMin: z.number().int().min(0).max(10_080).optional(),
 });
 
+export const eventUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(300),
+    notes: z.string().max(5_000).nullable(),
+    startsAt: z.coerce.date(),
+    endsAt: z.coerce.date().nullable(),
+    allDay: z.boolean(),
+  })
+  .partial();
+
+export const docCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  body: z.string().max(200_000).optional(),
+});
+
+export const docUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(300),
+    body: z.string().max(200_000),
+  })
+  .partial();
+
 export const repeatSchema = z.enum(["daily", "weekly", "monthly", "yearly"]);
 
 export const reminderCreateSchema = z.object({

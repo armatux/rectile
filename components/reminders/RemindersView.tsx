@@ -20,6 +20,13 @@ export type Rem = {
 
 type Bucket = { key: string; label: string; items: Rem[] };
 
+/** ISO → value for <input type="datetime-local"> in the device's zone */
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function fmtDue(iso: string): string {
   const d = new Date(iso);
   const date = d
@@ -46,6 +53,31 @@ export function RemindersView({
   const [showDone, setShowDone] = useState(false);
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
+  const [patched, setPatched] = useState<Map<number, { title: string; dueAt?: string }>>(
+    new Map(),
+  );
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDue, setEditDue] = useState("");
+
+  function saveEdit(r: Rem) {
+    const t = editTitle.trim();
+    setEditId(null);
+    if (!t) return;
+    const dueAt = editDue ? new Date(editDue).toISOString() : undefined;
+    setPatched((m) => new Map(m).set(r.id, { title: t, dueAt }));
+    startTransition(async () => {
+      if (
+        await submitOp({
+          kind: "reminder.update",
+          id: r.id,
+          patch: { title: t, dueAt: dueAt ?? null },
+        })
+      ) {
+        router.refresh();
+      }
+    });
+  }
 
   const slugs = useMemo(() => projects.map((p) => p.slug), [projects]);
   const parsed = useMemo(
@@ -57,8 +89,9 @@ export function RemindersView({
     () =>
       [...serverReminders, ...localAdds]
         .filter((r) => !removed.has(r.id))
-        .map((r) => (toggled.has(r.id) ? { ...r, done: toggled.get(r.id)! } : r)),
-    [serverReminders, localAdds, toggled, removed],
+        .map((r) => (toggled.has(r.id) ? { ...r, done: toggled.get(r.id)! } : r))
+        .map((r) => (patched.has(r.id) ? { ...r, ...patched.get(r.id)! } : r)),
+    [serverReminders, localAdds, toggled, removed, patched],
   );
 
   const buckets = useMemo<Bucket[]>(() => {
@@ -167,35 +200,76 @@ export function RemindersView({
         >
           {r.repeat ? "↻" : " "}
         </button>
-        <div className="min-w-0 flex-1">
-          <span className="block truncate text-[12px] text-bright">
-            {r.title}
-            {r.projectSlug && (
-              <Link
-                href={`/p/${r.projectSlug}`}
-                className="ml-2 text-[9px] font-bold tracking-[0.12em] text-accent/70 hover:text-accent"
-              >
-                #{r.projectSlug}
-              </Link>
-            )}
+        {editId === r.id ? (
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 py-1">
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveEdit(r);
+                if (e.key === "Escape") setEditId(null);
+              }}
+              autoFocus
+              className="min-w-0 flex-1 border-b border-line-strong bg-transparent text-[12px] text-bright focus:outline-none"
+            />
+            <input
+              type="datetime-local"
+              value={editDue}
+              onChange={(e) => setEditDue(e.target.value)}
+              className="min-h-[36px] flex-none border border-line bg-panel/70 px-2 text-[10.5px] text-bright focus:outline-none [color-scheme:dark]"
+              aria-label="deadline"
+            />
+            <button
+              onClick={() => saveEdit(r)}
+              className="min-h-[36px] flex-none border border-line-strong px-3 text-[9px] font-bold tracking-[0.2em] text-accent hover:bg-accent/10"
+            >
+              SAVE
+            </button>
           </span>
-          {(r.notes || r.repeat) && (
-            <span className="block truncate text-[10px] text-ink/45">
-              {r.repeat && (
-                <span className="mr-2 text-cyan/80">{repeatLabel(r.repeat)}</span>
+        ) : (
+          <>
+            <div className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] text-bright">
+                {r.title}
+                {r.projectSlug && (
+                  <Link
+                    href={`/p/${r.projectSlug}`}
+                    className="ml-2 text-[9px] font-bold tracking-[0.12em] text-accent/70 hover:text-accent"
+                  >
+                    #{r.projectSlug}
+                  </Link>
+                )}
+              </span>
+              {(r.notes || r.repeat) && (
+                <span className="block truncate text-[10px] text-ink/45">
+                  {r.repeat && (
+                    <span className="mr-2 text-cyan/80">{repeatLabel(r.repeat)}</span>
+                  )}
+                  {r.notes}
+                </span>
               )}
-              {r.notes}
-            </span>
-          )}
-        </div>
-        {r.dueAt && (
-          <span
-            className="flex-none text-[9.5px] font-bold tracking-[0.08em] tabular-nums"
-            style={{ color: dueColor(r, nowISO) }}
-          >
-            {fmtDue(r.dueAt)}
-          </span>
+            </div>
+            {r.dueAt && (
+              <span
+                className="flex-none text-[9.5px] font-bold tracking-[0.08em] tabular-nums"
+                style={{ color: dueColor(r, nowISO) }}
+              >
+                {fmtDue(r.dueAt)}
+              </span>
+            )}
+          </>
         )}
+        <button
+          onClick={() => {
+            setEditId(r.id);
+            setEditTitle(r.title);
+            setEditDue(r.dueAt ? toLocalInput(r.dueAt) : "");
+          }}
+          className="h-8 w-7 flex-none text-[10px] text-ink/20 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+          aria-label={`edit ${r.title}`}
+        >
+          ✎
+        </button>
         <button
           onClick={() => remove(r.id)}
           className="h-8 w-8 flex-none text-[12px] text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"

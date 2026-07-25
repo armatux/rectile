@@ -23,8 +23,23 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState({ label: "", url: "" });
 
   useEffect(() => setItems(links), [links]);
+
+  function saveEdit(id: number) {
+    const lab = editDraft.label.trim();
+    const u = /^https?:\/\//.test(editDraft.url) ? editDraft.url : `https://${editDraft.url}`;
+    setEditId(null);
+    if (!lab || !editDraft.url.trim()) return;
+    setItems((ls) => ls.map((x) => (x.id === id ? { ...x, label: lab, url: u } : x)));
+    startTransition(async () => {
+      if (await submitOp({ kind: "link.update", slug, id, patch: { label: lab, url: u } })) {
+        router.refresh();
+      }
+    });
+  }
 
   return (
     <section className="flex flex-col gap-2">
@@ -35,24 +50,60 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
             <span className="text-[10px] text-accent" aria-hidden>
               ◈
             </span>
-            <a
-              href={l.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-[11.5px] text-ink hover:text-accent"
-              title={l.url}
-            >
-              {l.label}
-              <span className="ml-2 hidden text-[9px] text-ink/30 sm:inline">
-                {(() => {
-                  try {
-                    return new URL(l.url).hostname;
-                  } catch {
-                    return "";
-                  }
-                })()}
+            {editId === l.id ? (
+              <span className="flex min-w-0 flex-1 flex-col gap-1 py-1">
+                <input
+                  value={editDraft.label}
+                  onChange={(e) => setEditDraft({ ...editDraft, label: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit(l.id);
+                    if (e.key === "Escape") setEditId(null);
+                  }}
+                  autoFocus
+                  className="w-full border-b border-line-strong bg-transparent text-[11.5px] text-bright focus:outline-none"
+                />
+                <input
+                  value={editDraft.url}
+                  onChange={(e) => setEditDraft({ ...editDraft, url: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit(l.id);
+                    if (e.key === "Escape") setEditId(null);
+                  }}
+                  onBlur={() => saveEdit(l.id)}
+                  inputMode="url"
+                  className="w-full border-b border-line bg-transparent text-[10px] text-ink/70 focus:outline-none"
+                />
               </span>
-            </a>
+            ) : (
+              <a
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-0 flex-1 truncate text-[11.5px] text-ink hover:text-accent"
+                title={l.url}
+              >
+                {l.label}
+                <span className="ml-2 hidden text-[9px] text-ink/30 sm:inline">
+                  {(() => {
+                    try {
+                      return new URL(l.url).hostname;
+                    } catch {
+                      return "";
+                    }
+                  })()}
+                </span>
+              </a>
+            )}
+            <button
+              onClick={() => {
+                setEditId(l.id);
+                setEditDraft({ label: l.label, url: l.url });
+              }}
+              className="h-8 w-7 flex-none text-[10px] text-ink/20 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+              aria-label={`edit link ${l.label}`}
+            >
+              ✎
+            </button>
             <button
               onClick={() => {
                 setItems((ls) => ls.filter((x) => x.id !== l.id));

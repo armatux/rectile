@@ -144,6 +144,69 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+/* Background Sync: flush the offline write queue even when no rectile tab
+ * is open anymore (Chromium; other engines flush on next visit as before).
+ * Only runs when NO window is open — open pages flush their own queue, and
+ * a double flush would double-apply ops. */
+const QUEUE_DB = "rectile-offline";
+const QUEUE_STORE = "ops";
+
+function queueTx(mode) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open(QUEUE_DB, 1);
+    open.onupgradeneeded = () => {
+      if (!open.result.objectStoreNames.contains(QUEUE_STORE))
+        open.result.createObjectStore(QUEUE_STORE, { autoIncrement: true });
+    };
+    open.onsuccess = () => resolve(open.result.transaction(QUEUE_STORE, mode));
+    open.onerror = () => reject(open.error);
+  });
+}
+
+async function flushQueueFromSw() {
+  const wins = await clients.matchAll({ type: "window" });
+  if (wins.length > 0) return; // a live page owns the queue
+
+  const t = await queueTx("readonly");
+  const store = t.objectStore(QUEUE_STORE);
+  const [keys, ops] = await Promise.all([
+    new Promise((res, rej) => {
+      const r = store.getAllKeys();
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    }),
+    new Promise((res, rej) => {
+      const r = store.getAll();
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    }),
+  ]);
+  if (!ops.length) return;
+
+  const resp = await fetch("/sync/ops", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Rectile-Sync": "1" },
+    body: JSON.stringify({ ops }),
+  });
+  if (!resp.ok && resp.status !== 400) throw new Error("retry"); // sync retries later
+  const del = await queueTx("readwrite");
+  const ds = del.objectStore(QUEUE_STORE);
+  await Promise.all(
+    keys.map(
+      (k) =>
+        new Promise((res, rej) => {
+          const r = ds.delete(k);
+          r.onsuccess = () => res(undefined);
+          r.onerror = () => rej(r.error);
+        }),
+    ),
+  );
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === "rectile-flush") event.waitUntil(flushQueueFromSw());
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;

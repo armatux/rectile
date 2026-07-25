@@ -21,8 +21,20 @@ export function LogFeed({
   const [value, setValue] = useState("");
   const [pendingDelete, setPendingDelete] = useState<number | null>(null);
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editBody, setEditBody] = useState("");
 
   useEffect(() => setLogs(initialLogs), [initialLogs]);
+
+  function saveEdit(id: number) {
+    const body = editBody.trim();
+    setEditId(null);
+    if (!body || logs.find((l) => l.id === id)?.body === body) return;
+    setLogs((ls) => ls.map((l) => (l.id === id ? { ...l, body } : l)));
+    startTransition(async () => {
+      if (await submitOp({ kind: "log.update", slug, id, body })) router.refresh();
+    });
+  }
 
   function submit() {
     const body = value.trim();
@@ -101,10 +113,40 @@ export function LogFeed({
                 {relTime(l.createdAt)}
               </time>
             </div>
-            <div
-              className="md min-w-0 flex-1 text-ink/85"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(l.body) }}
-            />
+            {editId === l.id ? (
+              <textarea
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                onBlur={() => saveEdit(l.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveEdit(l.id);
+                  if (e.key === "Escape") setEditId(null);
+                }}
+                rows={Math.min(10, editBody.split("\n").length + 1)}
+                autoFocus
+                className="min-w-0 flex-1 resize-y border border-line-strong bg-panel/70 px-2 py-1 text-[12px] leading-relaxed text-bright focus:outline-none"
+              />
+            ) : (
+              <div
+                onDoubleClick={() => {
+                  setEditId(l.id);
+                  setEditBody(l.body);
+                }}
+                title="double-click to edit"
+                className="md min-w-0 flex-1 text-ink/85"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(l.body) }}
+              />
+            )}
+            <button
+              onClick={() => {
+                setEditId(l.id);
+                setEditBody(l.body);
+              }}
+              className="h-8 w-7 flex-none text-[10px] text-ink/20 transition-opacity hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+              aria-label="edit log entry"
+            >
+              ✎
+            </button>
             <button
               onClick={() => requestDelete(l.id)}
               className={`h-8 w-8 flex-none text-[11px] transition-opacity ${

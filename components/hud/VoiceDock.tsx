@@ -27,11 +27,14 @@ export function VoiceDock({
   voice,
   setVoice,
   bus,
+  interpret,
 }: {
   briefs: string[];
   voice: VoiceState;
   setVoice: (v: VoiceState) => void;
   bus: React.MutableRefObject<OrbBus>;
+  /** command grammar — returns the spoken ack when a command was executed */
+  interpret?: (transcript: string) => string | null;
 }) {
   const [typed, setTyped] = useState("");
   const [micOn, setMicOn] = useState(false);
@@ -87,8 +90,9 @@ export function VoiceDock({
     };
   }, [typeLoop]);
 
-  /* ---- responding: speak the current brief ---- */
-  const respond = useCallback(() => {
+  /* ---- responding: speak a command ack, or the current brief ---- */
+  const heard = useRef("");
+  const respond = useCallback((say?: string) => {
     if (voiceRef.current === "responding") return;
     setVoice("responding");
     const started = performance.now();
@@ -100,7 +104,7 @@ export function VoiceDock({
       const left = Math.max(0, 5000 - (performance.now() - started));
       respT.current = setTimeout(done, left);
     };
-    const text = briefs[briefIdx.current % briefs.length] ?? "";
+    const text = say ?? briefs[briefIdx.current % briefs.length] ?? "";
     if (window.speechSynthesis) {
       try {
         window.speechSynthesis.cancel();
@@ -123,14 +127,22 @@ export function VoiceDock({
     respT.current = setTimeout(done, 5000);
   }, [briefs, setVoice]);
 
-  /* silence while listening (detected in the orb draw loop) → respond */
+  /* silence while listening (detected in the orb draw loop) → try a command
+     from what was heard since the wake word, else speak the brief */
   useEffect(() => {
     bus.current.onSilence = () => {
-      if (voiceRef.current === "listening") respond();
+      if (voiceRef.current !== "listening") return;
+      const tx = heard.current;
+      heard.current = "";
+      const ack = tx && interpret ? interpret(tx) : null;
+      respond(ack ?? undefined);
     };
-  }, [bus, respond]);
+  }, [bus, respond, interpret]);
 
-  const wake = useCallback(() => setVoice("listening"), [setVoice]);
+  const wake = useCallback(() => {
+    heard.current = "";
+    setVoice("listening");
+  }, [setVoice]);
 
   /* ---- mic + wake word ---- */
   const startRecog = useCallback(() => {
@@ -157,8 +169,12 @@ export function VoiceDock({
             tx.includes("reptile") ||
             tx.includes("rec tile") ||
             tx.includes("wreck"))
-        )
+        ) {
           wake();
+          return;
+        }
+        // while listening, remember what was said — commands parse on silence
+        if (voiceRef.current === "listening") heard.current = tx;
       };
       r.onend = () => {
         if (!dead.current && micRef.current) {

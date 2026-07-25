@@ -2,6 +2,7 @@ import type {
   HudChromeData,
   HudProject,
   HudUpcoming,
+  LauncherApp,
 } from "@/lib/hud-types";
 import type { CpptutorProgress } from "@/lib/cpptutor";
 import { getAccount, listFolders } from "@/lib/mail";
@@ -111,12 +112,13 @@ function buildBriefs(
 export async function getHudChrome(): Promise<HudChromeData> {
   const now = new Date();
   const horizon = new Date(now.getTime() + 14 * MS_DAY);
-  const [all, tutorKv, reminders, events, unread] = await Promise.all([
+  const [all, tutorKv, reminders, events, unread, launcherKv] = await Promise.all([
     listProjects({ sort: "staleness" }),
     getKv<CpptutorProgress>("cpptutor_progress"),
     listOpenRemindersDue(horizon),
     listEvents(now, horizon),
     mailUnread(),
+    getKv<LauncherApp[]>("app_launcher"),
   ]);
 
   const live = all.filter((p) => p.status !== "archived");
@@ -160,5 +162,6 @@ export async function getHudChrome(): Promise<HudChromeData> {
     upcoming,
     mailUnread: unread,
     briefs: buildBriefs(projects, upcoming, tutor?.data ?? null, unread),
+    launcher: Array.isArray(launcherKv?.value) ? launcherKv.value : [],
   };
 }

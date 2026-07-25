@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { HudChromeData, HudProject } from "@/lib/hud-types";
+import type { HudChromeData, HudProject, LauncherApp } from "@/lib/hud-types";
 import { submitOp } from "@/lib/offline/queue";
 import { PROJECT_STATUS_META, STALENESS_META, relTime } from "@/lib/ui";
 import { Sparkline } from "@/components/hud";
@@ -184,6 +184,98 @@ function TrainingUplink({ tutor }: { tutor: NonNullable<HudChromeData["tutor"]> 
   );
 }
 
+/** Editable quick-launch grid, stored in kv "app_launcher" via the ops queue. */
+function LauncherSection({ apps }: { apps: LauncherApp[] }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  function startEdit() {
+    setDraft(apps.map((a) => `${a.label} | ${a.url}`).join("\n"));
+    setEditing(true);
+  }
+
+  function save() {
+    const parsed: LauncherApp[] = draft
+      .split("\n")
+      .map((line) => {
+        const [label, ...rest] = line.split("|");
+        const url = rest.join("|").trim();
+        return { label: (label ?? "").trim(), url };
+      })
+      .filter((a) => a.label && a.url)
+      .slice(0, 24)
+      .map((a) => ({
+        label: a.label.slice(0, 40),
+        url: /^https?:\/\//.test(a.url) ? a.url : `https://${a.url}`,
+      }));
+    setEditing(false);
+    void submitOp({ kind: "kv.set", key: "app_launcher", value: parsed }).then(
+      (d) => d && router.refresh(),
+    );
+  }
+
+  return (
+    <section className="mb-7">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="hud-label">LAUNCHER</span>
+        <span className="hud-sublabel">APPS.{String(apps.length).padStart(2, "0")}</span>
+        <div className="hud-rule" />
+        <button
+          onClick={editing ? () => setEditing(false) : startEdit}
+          className="text-[10px] text-ink/40 hover:text-accent"
+          aria-label="edit launcher"
+        >
+          {editing ? "×" : "✎"}
+        </button>
+      </div>
+      {editing ? (
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={Math.max(4, draft.split("\n").length + 1)}
+            placeholder={"LABEL | https://url\nPROXMOX | https://192.168.1.190:8006"}
+            autoFocus
+            className="w-full resize-y border border-line bg-panel/70 px-2.5 py-2 font-mono text-[10.5px] leading-relaxed text-bright placeholder:text-ink/25 focus:border-line-strong focus:outline-none"
+          />
+          <button
+            onClick={save}
+            className="min-h-[36px] w-fit border border-line-strong bg-accent/10 px-4 text-[9px] font-bold tracking-[0.22em] text-accent hover:bg-accent/20"
+          >
+            SAVE
+          </button>
+        </div>
+      ) : apps.length === 0 ? (
+        <button
+          onClick={startEdit}
+          className="text-[9.5px] tracking-[0.14em] text-ink/30 hover:text-accent"
+        >
+          + ADD YOUR APPS (one “LABEL | URL” per line)
+        </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-1.5">
+          {apps.map((a, i) => (
+            <a
+              key={i}
+              href={a.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-[36px] items-center gap-2 border border-line bg-panel/50 px-2.5 text-[9.5px] font-semibold tracking-[0.14em] text-ink/70 transition-colors hover:border-line-strong hover:text-bright"
+              title={a.url}
+            >
+              <span className="text-[9px] text-accent" aria-hidden>
+                ⬡
+              </span>
+              <span className="min-w-0 truncate">{a.label.toUpperCase()}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function NewProjectModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const inputCls =
@@ -328,6 +420,47 @@ export function HudChrome({
       });
     },
     [doneTicks, router],
+  );
+
+  /** voice command grammar: returns spoken ack when a command was executed */
+  const interpret = useCallback(
+    (tx: string): string | null => {
+      const t = tx.toLowerCase();
+      if (/\b(calendar|cal)\b/.test(t)) {
+        router.push("/calendar");
+        return "Opening calendar.";
+      }
+      if (/\bmail\b/.test(t)) {
+        router.push("/mail");
+        return "Opening mail.";
+      }
+      if (/\b(core|home|dashboard)\b/.test(t)) {
+        router.push("/");
+        return "Core view.";
+      }
+      if (/\b(vault|files)\b/.test(t)) {
+        router.push("/vault");
+        return "Opening the vault.";
+      }
+      if (/\breminders\b/.test(t)) {
+        router.push("/reminders");
+        return "Opening reminders.";
+      }
+      const open = /\b(?:open|select|show)\s+(.+)/.exec(t);
+      if (open) {
+        const needle = open[1].trim();
+        const hit = data.projects.find((p) => p.name.toLowerCase().includes(needle));
+        if (hit) {
+          if (mode === "core") setSelSlug(hit.slug);
+          else router.push(`/p/${hit.slug}`);
+          return `${hit.name}. ${hit.pct} percent complete, ${
+            hit.idleDays === 0 ? "touched today" : `idle ${hit.idleDays} days`
+          }.`;
+        }
+      }
+      return null; // fall through to the regular brief
+    },
+    [data.projects, mode, router],
   );
 
   const sel =
@@ -709,17 +842,20 @@ export function HudChrome({
 
         <button
           onClick={() => setNewOpen(true)}
-          className="flex min-h-[44px] items-center justify-center gap-2 border border-line bg-panel/70 px-3 text-[9.5px] font-bold tracking-[0.24em] text-accent transition-colors hover:border-line-strong hover:text-bright"
+          className="mb-7 flex min-h-[44px] items-center justify-center gap-2 border border-line bg-panel/70 px-3 text-[9.5px] font-bold tracking-[0.24em] text-accent transition-colors hover:border-line-strong hover:text-bright"
         >
           + INITIALIZE PROJECT
         </button>
 
-        <nav className="mt-5 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-4">
+        <LauncherSection apps={data.launcher} />
+
+        <nav className="mt-0 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-4">
           {(
             [
               ["/cpptutor", "TUTOR"],
               ["/reminders", "REMS"],
               ["/review", "WEEK"],
+              ["/vault", "VAULT"],
               ["/stale", "STALE"],
               ["/archive", "ARCHIVE"],
               ["/search?q=", "SEARCH"],
@@ -738,7 +874,13 @@ export function HudChrome({
 
       {/* ---- voice dock ---- */}
       <div className="order-4 safe-bottom lg:fixed lg:bottom-[14px] lg:left-4 lg:z-[15]">
-        <VoiceDock briefs={data.briefs} voice={voice} setVoice={setVoice} bus={bus} />
+        <VoiceDock
+          briefs={data.briefs}
+          voice={voice}
+          setVoice={setVoice}
+          bus={bus}
+          interpret={interpret}
+        />
       </div>
 
       {newOpen && <NewProjectModal onClose={() => setNewOpen(false)} />}
