@@ -15,6 +15,12 @@ services:
       POSTGRES_DB: rectile
       API_TOKEN: ${API_TOKEN:?set API_TOKEN in .env}
       RECTILE_SEED_DEMO: ${RECTILE_SEED_DEMO:-0}
+      # web push + daily digest (optional — push disabled when unset)
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      RECTILE_TZ: ${RECTILE_TZ:-Europe/Berlin}
+      RECTILE_DIGEST_TIME: ${RECTILE_DIGEST_TIME:-08:00}
     ports:
       # cloudflared on the same host connects to 127.0.0.1:3000;
       # widen to "3000:3000" if the tunnel runs elsewhere on the LAN
