@@ -15,10 +15,10 @@ export function SectionHeader({
   sub?: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-baseline gap-2">
       <span className="hud-label">{label}</span>
       {sub && <span className="hud-sublabel">{sub}</span>}
-      <div className="hud-rule" />
+      <div className="hud-rule self-center" />
     </div>
   );
 }
@@ -27,12 +27,12 @@ export function StatusBadge({ status }: { status: Project["status"] }) {
   const meta = PROJECT_STATUS_META[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 border border-line px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em]"
+      className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-0.5 text-[11px] font-medium"
       style={{ color: meta.color }}
     >
       <span
-        className="h-1 w-1 rounded-full"
-        style={{ background: meta.color, boxShadow: `0 0 5px ${meta.color}` }}
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: meta.color }}
         aria-hidden
       />
       {meta.label}
@@ -45,7 +45,7 @@ export function FeatureStatusDot({ status }: { status: Feature["status"] }) {
   return (
     <span
       className="inline-block h-1.5 w-1.5 flex-none rounded-full"
-      style={{ background: meta.color, boxShadow: `0 0 5px ${meta.color}` }}
+      style={{ background: meta.color }}
       aria-label={meta.label}
     />
   );
@@ -53,13 +53,13 @@ export function FeatureStatusDot({ status }: { status: Feature["status"] }) {
 
 export function TagChip({ tag }: { tag: Pick<Tag, "name" | "color"> }) {
   return (
-    <span className="inline-flex items-center gap-1 border border-line px-1.5 py-0.5 text-[9px] tracking-[0.12em] text-ink/70">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-0.5 text-[11px] text-ink/75">
       <span
-        className="h-1 w-1 rounded-full"
+        className="h-1.5 w-1.5 rounded-full"
         style={{ background: tag.color }}
         aria-hidden
       />
-      {tag.name.toUpperCase()}
+      {tag.name}
     </span>
   );
 }
@@ -69,11 +69,11 @@ export function PriorityMark({ priority }: { priority: number }) {
     priority === 1
       ? "var(--color-accent)"
       : priority === 2
-        ? "rgb(217 210 236 / 0.55)"
-        : "rgb(217 210 236 / 0.3)";
+        ? "rgb(235 235 245 / 0.55)"
+        : "rgb(235 235 245 / 0.3)";
   return (
     <span
-      className="text-[9px] font-bold tracking-[0.2em]"
+      className="text-[11px] font-semibold"
       style={{ color }}
       title={`priority ${priority}`}
     >
@@ -85,7 +85,7 @@ export function PriorityMark({ priority }: { priority: number }) {
 export function ProgressBar({
   built,
   total,
-  height = 3,
+  height = 4,
 }: {
   built: number;
   total: number;
@@ -94,7 +94,7 @@ export function ProgressBar({
   const pct = total > 0 ? Math.round((built / total) * 100) : 0;
   return (
     <div
-      className="w-full bg-white/5"
+      className="w-full overflow-hidden rounded-full bg-white/10"
       style={{ height }}
       role="progressbar"
       aria-valuenow={pct}
@@ -102,19 +102,14 @@ export function ProgressBar({
       aria-valuemax={100}
     >
       <div
-        className="h-full transition-[width] duration-500"
-        style={{
-          width: `${pct}%`,
-          background:
-            "linear-gradient(90deg, rgb(150 110 255 / 0.7), var(--color-accent))",
-          boxShadow: "0 0 8px rgb(150 110 255 / 0.6)",
-        }}
+        className="h-full rounded-full bg-accent transition-[width] duration-500"
+        style={{ width: `${pct}%` }}
       />
     </div>
   );
 }
 
-/** Relative last-touched time that visually decays: subtle → amber → red. */
+/** Relative last-touched time that visually decays: subtle → orange → red. */
 export function Staleness({
   lastTouchedAt,
   withLabel = false,
@@ -126,22 +121,19 @@ export function Staleness({
   const meta = STALENESS_META[tier];
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.12em]"
+      className="inline-flex items-center gap-1.5 text-[12px]"
       style={{ color: meta.color }}
       title={new Date(lastTouchedAt).toLocaleString()}
     >
       <span
-        className={`h-1 w-1 rounded-full ${tier === "dying" ? "pulse-dot" : ""}`}
-        style={{
-          background: meta.color,
-          boxShadow: tier !== "fresh" ? `0 0 6px ${meta.color}` : "none",
-        }}
+        className={`h-1.5 w-1.5 rounded-full ${tier === "dying" ? "pulse-dot" : ""}`}
+        style={{ background: meta.color }}
         aria-hidden
       />
       {relTime(lastTouchedAt)}
       {withLabel && tier !== "fresh" && (
-        <span className="text-[8px] tracking-[0.2em] opacity-80">
-          {tier === "stale" ? "STALE" : "DYING"}
+        <span className="text-[11px] font-medium opacity-80">
+          {tier === "stale" ? "stale" : "dying"}
         </span>
       )}
     </span>
@@ -169,8 +161,10 @@ export function Sparkline({ values }: { values: number[] }) {
       <polyline
         points={pts}
         fill="none"
-        stroke="rgb(179 156 245 / 0.75)"
-        strokeWidth="1.2"
+        stroke="rgb(10 132 255 / 0.8)"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       />
     </svg>

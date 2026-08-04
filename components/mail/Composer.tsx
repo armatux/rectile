@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 
-const inputCls =
-  "min-h-[42px] w-full border border-line bg-panel/70 px-3 text-[11.5px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none";
-
 export type ComposerAccount = { id: string; label: string; user: string };
 
 export function Composer({
@@ -56,7 +53,7 @@ export function Composer({
 
   return (
     <form
-      className="hud-panel flex flex-col gap-2 p-4"
+      className="glass-heavy flex flex-col gap-2.5 p-5"
       onSubmit={(e) => {
         e.preventDefault();
         if (!ready || state === "sending") return;
@@ -70,12 +67,12 @@ export function Composer({
     >
       {accounts.length > 1 && (
         <label className="flex items-center gap-2">
-          <span className="hud-sublabel w-10 flex-none">FROM</span>
+          <span className="hud-sublabel w-10 flex-none">From</span>
           <span className="relative w-full">
             <select
               value={account}
               onChange={(e) => setAccount(e.target.value)}
-              className="min-h-[42px] w-full cursor-pointer appearance-none border border-line bg-panel/70 px-3 pr-7 text-[10px] font-semibold tracking-[0.14em] text-bright focus:border-line-strong focus:outline-none"
+              className="field cursor-pointer appearance-none pr-8!"
             >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -83,12 +80,20 @@ export function Composer({
                 </option>
               ))}
             </select>
-            <span
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-ink/40"
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-ink/40"
               aria-hidden
             >
-              ▾
-            </span>
+              <path
+                d="M2.5 4.5 6 8l3.5-3.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
         </label>
       )}
@@ -97,42 +102,42 @@ export function Composer({
         onChange={(e) => setTo(e.target.value)}
         placeholder="to@example.com"
         inputMode="email"
-        className={inputCls}
+        className="field"
       />
       <input
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
-        placeholder="subject"
-        className={inputCls}
+        placeholder="Subject"
+        className="field"
       />
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder="write…"
+        placeholder="Write a message…"
         rows={7}
-        className={`${inputCls} resize-y py-2.5 leading-relaxed`}
+        className="field resize-y py-2.5! leading-relaxed"
       />
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={!ready || state === "sending"}
-          className={`min-h-[42px] border px-5 text-[9px] font-bold tracking-[0.22em] transition-colors disabled:opacity-40 ${
+          className={
             state === "confirm"
-              ? "border-warn/70 bg-warn/10 text-warn"
-              : "border-line-strong text-accent hover:bg-accent/10"
-          }`}
+              ? "inline-flex min-h-[36px] items-center justify-center rounded-full bg-warn/15 px-4 text-[13px] font-semibold text-warn transition-colors hover:bg-warn/25 disabled:opacity-40"
+              : "btn-tint disabled:opacity-40"
+          }
         >
           {state === "sending"
-            ? "TRANSMITTING…"
+            ? "Sending…"
             : state === "confirm"
-              ? "TAP AGAIN TO SEND"
-              : "SEND ▸"}
+              ? "Tap again to send"
+              : "Send"}
         </button>
         {state === "sent" && (
-          <span className="text-[9.5px] font-bold tracking-[0.18em] text-ok">✓ SENT</span>
+          <span className="text-[12px] font-medium text-ok">Sent</span>
         )}
         {state === "error" && (
-          <span className="truncate text-[9.5px] tracking-[0.1em] text-danger">⚠ {error}</span>
+          <span className="truncate text-[12px] text-danger">{error}</span>
         )}
       </div>
     </form>

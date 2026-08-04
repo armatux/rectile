@@ -77,38 +77,32 @@ export function LogFeed({
           e.preventDefault();
           submit();
         }}
-        className="flex items-center gap-2 border border-line bg-panel/70 px-3 focus-within:border-line-strong"
+        className="flex items-center gap-2 rounded-full border border-line bg-white/5 px-4 transition-colors focus-within:border-line-strong"
       >
-        <span className="text-accent" aria-hidden>
-          ▸
-        </span>
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="what did you just do?"
+          placeholder="What did you just do?"
           enterKeyHint="send"
-          className="min-h-[48px] w-full bg-transparent text-[12px] text-bright placeholder:text-ink/30 focus:outline-none"
+          className="min-h-[48px] w-full bg-transparent text-[13px] text-bright placeholder:text-ink/30 focus:outline-none"
         />
         <button
           type="submit"
-          className="min-h-[44px] flex-none text-[9px] font-bold tracking-[0.2em] text-accent hover:text-bright"
+          className="min-h-[44px] flex-none text-[13px] font-medium text-accent hover:text-[#409cff]"
           aria-label="log it"
         >
-          LOG
+          Log
         </button>
       </form>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-2">
         {logs.map((l) => (
-          <article
-            key={l.id}
-            className="fade-in group flex gap-3 border-b border-line/60 py-3 last:border-b-0"
-          >
-            <div className="w-14 flex-none pt-0.5 text-right">
+          <article key={l.id} className="fade-in group flex gap-3">
+            <div className="w-14 flex-none pt-2.5 text-right">
               <time
                 dateTime={l.createdAt}
                 title={longDate(l.createdAt)}
-                className="text-[9.5px] tracking-[0.12em] text-ink/40"
+                className="text-[12px] text-ink/40"
               >
                 {relTime(l.createdAt)}
               </time>
@@ -124,7 +118,7 @@ export function LogFeed({
                 }}
                 rows={Math.min(10, editBody.split("\n").length + 1)}
                 autoFocus
-                className="min-w-0 flex-1 resize-y border border-line-strong bg-panel/70 px-2 py-1 text-[12px] leading-relaxed text-bright focus:outline-none"
+                className="min-w-0 flex-1 resize-y rounded-2xl border border-line-strong bg-white/5 px-3.5 py-2.5 text-[13px] leading-relaxed text-bright focus:outline-none"
               />
             ) : (
               <div
@@ -133,7 +127,7 @@ export function LogFeed({
                   setEditBody(l.body);
                 }}
                 title="double-click to edit"
-                className="md min-w-0 flex-1 text-ink/85"
+                className="md min-w-0 flex-1 rounded-2xl bg-white/5 px-3.5 py-2.5 text-ink/85"
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(l.body) }}
               />
             )}
@@ -142,27 +136,27 @@ export function LogFeed({
                 setEditId(l.id);
                 setEditBody(l.body);
               }}
-              className="h-8 w-7 flex-none text-[10px] text-ink/20 transition-opacity hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+              className="h-8 w-7 flex-none self-center text-[12px] text-ink/20 transition-opacity hover:text-accent md:opacity-0 md:group-hover:opacity-100"
               aria-label="edit log entry"
             >
               ✎
             </button>
             <button
               onClick={() => requestDelete(l.id)}
-              className={`h-8 w-8 flex-none text-[11px] transition-opacity ${
+              className={`h-8 w-8 flex-none self-center text-[11px] transition-opacity ${
                 pendingDelete === l.id
                   ? "text-danger"
                   : "text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
               }`}
               aria-label="delete log entry"
             >
-              {pendingDelete === l.id ? "✓?" : "×"}
+              {pendingDelete === l.id ? "Sure?" : "×"}
             </button>
           </article>
         ))}
         {logs.length === 0 && (
-          <p className="py-6 text-center text-[10px] tracking-[0.2em] text-ink/30">
-            NO LOG ENTRIES · WRITE THE FIRST ONE ABOVE
+          <p className="py-6 text-center text-[12px] text-ink/35">
+            No log entries yet — write the first one above.
           </p>
         )}
       </div>

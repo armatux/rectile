@@ -14,8 +14,8 @@ export default async function RemindersPage() {
   return (
     <div className="flex flex-col gap-5 pt-5">
       <SectionHeader
-        label="REMINDERS"
-        sub={`OPEN.${String(open).padStart(2, "0")} · DONE.${String(all.length - open).padStart(2, "0")}`}
+        label="Reminders"
+        sub={`${open} open · ${all.length - open} done`}
       />
       <RemindersView
         reminders={all.map((r) => ({

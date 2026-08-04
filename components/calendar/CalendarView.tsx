@@ -19,7 +19,7 @@ export type CalEvent = {
 };
 
 const DAY_MS = 86_400_000;
-const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function dayKey(iso: string): string {
   return iso.slice(0, 10);
@@ -174,40 +174,40 @@ export function CalendarView({
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
-      <section className="hud-panel flex flex-col gap-3 p-4">
+      <section className="glass flex flex-col gap-3 p-4">
         {/* month header */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
           <Link
             href={`/calendar?m=${shiftMonth(monthISO, -1)}`}
-            className="flex h-9 w-9 items-center justify-center border border-line text-ink/50 hover:border-line-strong hover:text-accent"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[19px] text-ink/60 transition-colors hover:bg-white/10 hover:text-bright"
             aria-label="previous month"
           >
-            ◂
+            ‹
           </Link>
-          <span className="font-display text-[18px] font-bold tracking-[0.12em] text-bright">
+          <span className="font-display text-[18px] font-semibold tracking-[-0.01em] text-bright">
             {new Date(`${monthISO}-01T00:00:00Z`).toLocaleDateString("en-GB", {
               month: "long",
               year: "numeric",
               timeZone: "UTC",
-            }).toUpperCase()}
+            })}
           </span>
           <Link
             href={`/calendar?m=${shiftMonth(monthISO, 1)}`}
-            className="flex h-9 w-9 items-center justify-center border border-line text-ink/50 hover:border-line-strong hover:text-accent"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[19px] text-ink/60 transition-colors hover:bg-white/10 hover:text-bright"
             aria-label="next month"
           >
-            ▸
+            ›
           </Link>
           <Link
             href="/calendar"
-            className="ml-auto text-[9px] font-bold tracking-[0.22em] text-ink/40 hover:text-accent"
+            className="ml-auto text-[13px] font-medium text-accent hover:text-[#409cff]"
           >
-            TODAY
+            Today
           </Link>
         </div>
 
         {/* grid */}
-        <div className="grid grid-cols-7 gap-px">
+        <div className="grid grid-cols-7 gap-1">
           {WEEKDAYS.map((d) => (
             <span key={d} className="hud-sublabel px-1.5 pb-1">
               {d}
@@ -221,32 +221,39 @@ export function CalendarView({
               <button
                 key={d.key}
                 onClick={() => setSelected(d.key)}
-                className={`flex min-h-[72px] flex-col items-stretch gap-0.5 border p-1.5 text-left transition-colors sm:min-h-[84px] ${
-                  isSelected
-                    ? "border-line-strong bg-accent/10"
-                    : "border-line hover:border-line-strong"
+                className={`flex min-h-[72px] flex-col items-stretch gap-0.5 rounded-xl p-1.5 text-left transition-colors sm:min-h-[84px] ${
+                  isSelected ? "bg-white/10" : "hover:bg-white/5"
                 } ${d.inMonth ? "" : "opacity-35"}`}
               >
                 <span
-                  className={`text-[10px] font-bold ${
-                    isToday ? "text-accent" : "text-ink/60"
+                  className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-[12px] ${
+                    isToday
+                      ? "bg-accent font-semibold text-white"
+                      : "font-medium text-ink/70"
                   }`}
                 >
                   {d.date}
-                  {isToday && <span className="ml-1">●</span>}
                 </span>
-                {evs.slice(0, 3).map((e, i) => (
-                  <span
-                    key={i}
-                    className="truncate text-[8.5px] leading-tight"
-                    style={{ color: eventColor(e, "var(--color-accent)") }}
-                  >
-                    {e.allDay ? "" : `${fmtTime(e.startsAt)} `}
-                    {e.title}
-                  </span>
-                ))}
+                {evs.slice(0, 3).map((e, i) => {
+                  const c = eventColor(e, "var(--color-accent)");
+                  return (
+                    <span
+                      key={i}
+                      className="truncate rounded-full px-1.5 py-px text-[11px] leading-snug"
+                      style={{
+                        color: c,
+                        background: `color-mix(in srgb, ${c} 14%, transparent)`,
+                      }}
+                    >
+                      {e.allDay ? "" : `${fmtTime(e.startsAt)} `}
+                      {e.title}
+                    </span>
+                  );
+                })}
                 {evs.length > 3 && (
-                  <span className="text-[8px] text-ink/40">+{evs.length - 3}</span>
+                  <span className="px-1.5 text-[11px] text-ink/40">
+                    +{evs.length - 3}
+                  </span>
                 )}
               </button>
             );
@@ -256,17 +263,17 @@ export function CalendarView({
 
       <div className="flex flex-col gap-4">
         {/* selected day */}
-        <section className="hud-panel flex flex-col gap-2 p-4">
-          <span className="hud-sublabel">
+        <section className="glass flex flex-col gap-2 p-4">
+          <span className="hud-label">
             {new Date(`${selected}T00:00:00Z`).toLocaleDateString("en-GB", {
               weekday: "long",
               day: "2-digit",
               month: "short",
               timeZone: "UTC",
-            }).toUpperCase()}
+            })}
           </span>
           {selectedEvents.length === 0 && (
-            <p className="py-2 text-[10px] tracking-[0.14em] text-ink/30">NO EVENTS</p>
+            <p className="py-2 text-[12px] text-ink/40">No events</p>
           )}
           {selectedEvents.map((e, i) => (
             <div key={e.id ?? e.uid ?? i} className="group flex items-baseline gap-2">
@@ -276,7 +283,7 @@ export function CalendarView({
                     type="time"
                     value={editTime}
                     onChange={(ev) => setEditTime(ev.target.value)}
-                    className="min-h-[34px] w-24 flex-none border border-line bg-panel/70 px-1.5 text-[10.5px] text-bright focus:outline-none [color-scheme:dark]"
+                    className="field max-w-24 flex-none [color-scheme:dark]"
                     aria-label="event time (empty = all day)"
                   />
                   <input
@@ -287,29 +294,26 @@ export function CalendarView({
                       if (ev.key === "Escape") setEditId(null);
                     }}
                     autoFocus
-                    className="min-w-0 flex-1 border-b border-line-strong bg-transparent text-[11.5px] text-bright focus:outline-none"
+                    className="field min-w-0 flex-1"
                   />
-                  <button
-                    onClick={() => saveEventEdit(e)}
-                    className="min-h-[34px] flex-none border border-line-strong px-2.5 text-[8.5px] font-bold tracking-[0.18em] text-accent hover:bg-accent/10"
-                  >
-                    SAVE
+                  <button onClick={() => saveEventEdit(e)} className="btn-tint flex-none">
+                    Save
                   </button>
                 </span>
               ) : (
                 <>
-                  <span className="w-11 flex-none text-[9.5px] tabular-nums text-ink/50">
-                    {e.allDay ? "DAY" : fmtTime(e.startsAt)}
+                  <span className="w-14 flex-none text-[12px] tabular-nums text-ink/50">
+                    {e.allDay ? "all-day" : fmtTime(e.startsAt)}
                   </span>
                   <span
-                    className="min-w-0 flex-1 truncate text-[11.5px]"
+                    className="min-w-0 flex-1 truncate text-[13px]"
                     style={{ color: eventColor(e, "var(--color-ink)") }}
                     title={e.notes}
                   >
                     {e.title}
                     {e.subLabel && (
-                      <span className="ml-2 text-[8.5px] tracking-[0.14em] text-ink/35">
-                        {e.subLabel.toUpperCase()}
+                      <span className="ml-2 text-[11px] text-ink/40">
+                        {e.subLabel}
                       </span>
                     )}
                   </span>
@@ -323,14 +327,14 @@ export function CalendarView({
                       setEditTitle(e.title);
                       setEditTime(e.allDay ? "" : fmtTime(e.startsAt));
                     }}
-                    className="h-7 w-6 flex-none text-[10px] text-ink/20 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+                    className="h-7 w-6 flex-none text-[12px] text-ink/25 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
                     aria-label={`edit ${e.title}`}
                   >
                     ✎
                   </button>
                   <button
                     onClick={() => removeEvent(e.id!)}
-                    className="h-7 w-7 flex-none text-[11px] text-ink/20 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
+                    className="h-7 w-7 flex-none text-[13px] text-ink/25 hover:text-danger md:opacity-0 md:group-hover:opacity-100"
                     aria-label={`delete ${e.title}`}
                   >
                     ×
@@ -350,35 +354,30 @@ export function CalendarView({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="+ event"
-              className="min-h-[40px] w-full min-w-0 border border-line bg-panel/70 px-2.5 text-[11px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none"
+              placeholder="New event"
+              className="field min-w-0"
             />
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="min-h-[40px] w-24 flex-none border border-line bg-panel/70 px-2 text-[11px] text-bright focus:border-line-strong focus:outline-none [color-scheme:dark]"
+              className="field max-w-24 flex-none [color-scheme:dark]"
               aria-label="time (empty = all day)"
             />
-            <button
-              type="submit"
-              className="min-h-[40px] flex-none border border-line-strong px-3 text-[9px] font-bold tracking-[0.2em] text-accent hover:bg-accent/10"
-            >
-              ADD
+            <button type="submit" className="btn-tint flex-none">
+              Add
             </button>
           </form>
-          <p className="text-[8.5px] tracking-[0.1em] text-ink/30">
-            TAG !30M / !2H / !1D / !REMIND → PUSH BEFORE THE EVENT
+          <p className="text-[11px] text-ink/35">
+            Tag !30m / !2h / !1d / !remind for a push before the event
           </p>
         </section>
 
         {/* upcoming */}
-        <section className="hud-panel flex flex-col gap-2 p-4">
-          <span className="hud-sublabel">UPCOMING</span>
+        <section className="glass flex flex-col gap-2 p-4">
+          <span className="hud-label">Upcoming</span>
           {upcoming.length === 0 && (
-            <p className="py-2 text-[10px] tracking-[0.14em] text-ink/30">
-              NOTHING SCHEDULED
-            </p>
+            <p className="py-2 text-[12px] text-ink/40">Nothing scheduled</p>
           )}
           {upcoming.map((e, i) => (
             <button
@@ -386,7 +385,7 @@ export function CalendarView({
               onClick={() => setSelected(dayKey(e.startsAt))}
               className="flex items-baseline gap-2 text-left hover:text-bright"
             >
-              <span className="w-20 flex-none text-[9.5px] tabular-nums text-ink/50">
+              <span className="w-24 flex-none text-[12px] tabular-nums text-ink/50">
                 {new Date(e.startsAt).toLocaleDateString("en-GB", {
                   day: "2-digit",
                   month: "short",
@@ -394,7 +393,7 @@ export function CalendarView({
                 {!e.allDay && ` ${fmtTime(e.startsAt)}`}
               </span>
               <span
-                className="min-w-0 flex-1 truncate text-[11px]"
+                className="min-w-0 flex-1 truncate text-[13px]"
                 style={{ color: eventColor(e, "var(--color-ink)") }}
               >
                 {e.title}

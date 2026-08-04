@@ -98,33 +98,35 @@ export default async function ProjectPage({ params }: { params: Params }) {
           <StatusBadge status={project.status} />
           <Staleness lastTouchedAt={project.lastTouchedAt} withLabel />
         </ProjectIdentity>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] tracking-[0.18em] text-ink/40">
-          {project.category && <span>CAT · {project.category.toUpperCase()}</span>}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink/40">
+          {project.category && <span>{project.category}</span>}
           <span>
-            EST ·{" "}
-            {new Date(project.createdAt)
-              .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-              .toUpperCase()}
+            Created{" "}
+            {new Date(project.createdAt).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
           </span>
-          <span className="text-ink/25">/{project.slug}</span>
+          <span className="font-mono text-[11px] text-ink/25">/{project.slug}</span>
         </div>
       </header>
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_300px]">
         <div className="flex min-w-0 flex-col gap-8">
           <div className="flex flex-col gap-3">
-            <SectionHeader label="ROADMAP" sub="BUILT.VS.PLANNED" />
+            <SectionHeader label="Roadmap" />
             <RoadmapBoard slug={project.slug} initialFeatures={featureDTOs} />
           </div>
           <div className="flex flex-col gap-3">
             <SectionHeader
-              label="DOCS"
-              sub={`PAGES.${String(docDTOs.length).padStart(2, "0")}`}
+              label="Docs"
+              sub={`${docDTOs.length} ${docDTOs.length === 1 ? "page" : "pages"}`}
             />
             <DocsPanel slug={project.slug} docs={docDTOs} renderedById={renderedById} />
           </div>
           <div className="flex flex-col gap-3">
-            <SectionHeader label="LOG" sub="REVERSE.CHRONO" />
+            <SectionHeader label="Log" />
             <LogFeed slug={project.slug} initialLogs={logDTOs} />
           </div>
         </div>
@@ -143,16 +145,16 @@ export default async function ProjectPage({ params }: { params: Params }) {
           <LinksPanel slug={project.slug} links={project.links} />
           <div className="flex flex-col gap-2">
             <SectionHeader
-              label="FILES"
-              sub={`VAULT.${String(fileDTOs.length).padStart(2, "0")}`}
+              label="Files"
+              sub={`${fileDTOs.length} ${fileDTOs.length === 1 ? "file" : "files"}`}
             />
             <FilesPanel files={fileDTOs} projectSlug={project.slug} />
           </div>
           {reminders.length > 0 && (
             <div className="flex flex-col gap-2">
               <SectionHeader
-                label="REMINDERS"
-                sub={`OPEN.${String(reminders.length).padStart(2, "0")}`}
+                label="Reminders"
+                sub={`${reminders.length} open`}
               />
               <div className="hud-panel flex flex-col gap-1 p-3">
                 {reminders.map((r) => {
@@ -161,27 +163,27 @@ export default async function ProjectPage({ params }: { params: Params }) {
                     <Link
                       key={r.id}
                       href="/reminders"
-                      className="flex min-h-[32px] items-center gap-2 text-[11px] text-ink hover:text-bright"
+                      className="flex min-h-[32px] items-center gap-2 text-[13px] text-ink hover:text-bright"
                     >
-                      <span className="text-[10px]" aria-hidden>
-                        {r.repeat ? "↻" : "▹"}
-                      </span>
+                      {r.repeat && (
+                        <span className="text-[11px] text-ink/40" aria-hidden>
+                          ↻
+                        </span>
+                      )}
                       <span className="min-w-0 flex-1 truncate">{r.title}</span>
                       {r.dueAt && (
                         <span
-                          className="flex-none text-[9px] font-bold tabular-nums"
+                          className="flex-none text-[11px] font-medium tabular-nums"
                           style={{
                             color: overdue
                               ? "var(--color-danger)"
                               : "var(--color-accent)",
                           }}
                         >
-                          {r.dueAt
-                            .toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                            })
-                            .toUpperCase()}
+                          {r.dueAt.toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
                         </span>
                       )}
                     </Link>

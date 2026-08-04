@@ -16,7 +16,7 @@ export function ProjectCard({ project: p }: { project: ProjectSummary }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="truncate text-[14px] font-bold tracking-[0.08em] text-bright group-hover:text-accent">
+          <h2 className="truncate text-[15px] font-semibold text-bright group-hover:text-accent">
             {p.name}
           </h2>
           {p.category && (
@@ -39,20 +39,20 @@ export function ProjectCard({ project: p }: { project: ProjectSummary }) {
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
-          <span className="text-[10px] tracking-[0.18em] text-ink/50">
-            <span className="font-display text-[13px] font-bold text-bright">
+          <span className="text-[12px] text-ink/50">
+            <span className="text-[13px] font-semibold text-bright">
               {p.featuresBuilt}
             </span>
             {" / "}
-            {p.featuresTotal} BUILT
+            {p.featuresTotal} built
           </span>
           <Staleness lastTouchedAt={p.lastTouchedAt} withLabel />
         </div>
         <ProgressBar built={p.featuresBuilt} total={p.featuresTotal} />
       </div>
 
-      <div className="truncate text-[10.5px] text-ink/60">
-        <span className="text-accent">next ▸ </span>
+      <div className="truncate text-[12px] text-ink/60">
+        <span className="text-accent">Next · </span>
         {p.nextAction ?? "no roadmap items yet"}
       </div>
     </Link>

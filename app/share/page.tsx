@@ -17,7 +17,7 @@ export default async function SharePage({ searchParams }: { searchParams: SP }) 
 
   return (
     <div className="flex flex-col gap-5 pt-5">
-      <SectionHeader label="CAPTURE" sub="SHARE.TARGET" />
+      <SectionHeader label="Capture" sub="Share target" />
       <ShareForm
         sharedTitle={str(sp.title)}
         sharedText={str(sp.text)}

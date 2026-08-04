@@ -20,8 +20,8 @@ export default async function VaultPage() {
   return (
     <div className="flex flex-col gap-6 pt-5">
       <SectionHeader
-        label="VAULT"
-        sub={`FILES.${String(files.length).padStart(2, "0")} · ${(total / 1024 / 1024).toFixed(1)} MB`}
+        label="Vault"
+        sub={`${files.length} file${files.length === 1 ? "" : "s"} · ${(total / 1024 / 1024).toFixed(1)} MB`}
       />
       <FilesPanel files={dtos} showProject />
     </div>

@@ -91,25 +91,24 @@ export function ShareForm({
     <button
       key={m}
       onClick={() => setMode(m)}
-      className={`min-h-[40px] border px-3 text-[9px] font-bold tracking-[0.2em] transition-colors ${
+      className={`min-h-[40px] rounded-full px-4 text-[13px] font-medium transition-colors ${
         mode === m
-          ? "border-line-strong text-accent"
-          : "border-line text-ink/40 hover:text-accent"
+          ? "bg-accent/15 text-accent"
+          : "text-ink/50 hover:text-bright"
       }`}
     >
       {label}
     </button>
   );
 
-  const input =
-    "min-h-[42px] w-full border border-line bg-panel/70 px-2.5 text-[11.5px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none";
+  const input = "field";
 
   return (
     <section className="hud-panel mx-auto flex w-full max-w-xl flex-col gap-3 p-4">
       <div className="flex gap-2">
-        {tab("reminder", "REMINDER")}
-        {tab("log", "LOG ENTRY")}
-        {tab("link", "LINK")}
+        {tab("reminder", "Reminder")}
+        {tab("log", "Log entry")}
+        {tab("link", "Link")}
       </div>
 
       {mode !== "link" && (
@@ -117,13 +116,12 @@ export function ShareForm({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={mode === "log" ? 4 : 2}
-          placeholder={mode === "reminder" ? "what + when — e.g. read this tomorrow" : "log entry"}
+          placeholder={mode === "reminder" ? "What + when — e.g. read this tomorrow" : "Log entry"}
           className={`${input} resize-y py-2`}
         />
       )}
       {mode === "reminder" && parsed && (parsed.dueAt || parsed.repeat || parsed.projectSlug) && (
-        <p className="-mt-1 text-[9.5px] tracking-[0.1em] text-ink/45">
-          <span className="text-accent">→ </span>
+        <p className="-mt-1 text-[12px] text-ink/45">
           {parsed.title}
           {parsed.dueAt && (
             <span className="ml-2 text-bright">
@@ -149,7 +147,7 @@ export function ShareForm({
           <input
             value={linkLabel}
             onChange={(e) => setLinkLabel(e.target.value)}
-            placeholder="label"
+            placeholder="Label"
             className={input}
           />
           <input
@@ -162,30 +160,46 @@ export function ShareForm({
       )}
 
       {mode !== "reminder" && (
-        <select
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          className={`${input} [color-scheme:dark]`}
-          aria-label="project"
-        >
-          {projects.map((p) => (
-            <option key={p.slug} value={p.slug}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <span className="relative w-full">
+          <select
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            className={`${input} cursor-pointer appearance-none pr-8! [color-scheme:dark]`}
+            aria-label="project"
+          >
+            {projects.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <svg
+            viewBox="0 0 12 12"
+            fill="none"
+            className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-ink/40"
+            aria-hidden
+          >
+            <path
+              d="M2.5 4.5 6 8l3.5-3.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
       )}
 
       <button
         onClick={submit}
         disabled={state === "busy"}
-        className="min-h-[44px] border border-line-strong text-[10px] font-bold tracking-[0.24em] text-accent hover:bg-accent/10 disabled:opacity-40"
+        className="btn-tint min-h-[44px] disabled:opacity-40"
       >
-        {state === "busy" ? "…" : "CAPTURE"}
+        {state === "busy" ? "…" : "Capture"}
       </button>
       {state === "queued" && (
-        <p className="text-[9.5px] tracking-[0.14em] text-warn">
-          LINK DOWN — QUEUED, WILL SYNC WHEN BACK ONLINE
+        <p className="text-[12px] text-warn">
+          Offline — queued, will sync when you&rsquo;re back online.
         </p>
       )}
     </section>

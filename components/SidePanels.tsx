@@ -11,8 +11,7 @@ import { SectionHeader } from "./hud";
 type LinkDTO = { id: number; label: string; url: string };
 type TagDTO = { name: string; color: string };
 
-const inputCls =
-  "min-h-[44px] w-full border border-line bg-panel/70 px-3 text-[11px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none";
+const inputCls = "field";
 
 /* ------------------------------- links ------------------------------- */
 
@@ -43,13 +42,13 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
 
   return (
     <section className="flex flex-col gap-2">
-      <SectionHeader label="LINKS" sub={`×${items.length}`} />
+      <SectionHeader
+        label="Links"
+        sub={`${items.length} ${items.length === 1 ? "link" : "links"}`}
+      />
       <ul className="flex flex-col">
         {items.map((l) => (
           <li key={l.id} className="group flex min-h-[44px] items-center gap-2">
-            <span className="text-[10px] text-accent" aria-hidden>
-              ◈
-            </span>
             {editId === l.id ? (
               <span className="flex min-w-0 flex-1 flex-col gap-1 py-1">
                 <input
@@ -60,7 +59,7 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
                     if (e.key === "Escape") setEditId(null);
                   }}
                   autoFocus
-                  className="w-full border-b border-line-strong bg-transparent text-[11.5px] text-bright focus:outline-none"
+                  className="w-full border-b border-line-strong bg-transparent text-[13px] text-bright focus:outline-none"
                 />
                 <input
                   value={editDraft.url}
@@ -71,7 +70,7 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
                   }}
                   onBlur={() => saveEdit(l.id)}
                   inputMode="url"
-                  className="w-full border-b border-line bg-transparent text-[10px] text-ink/70 focus:outline-none"
+                  className="w-full border-b border-line bg-transparent text-[12px] text-ink/70 focus:outline-none"
                 />
               </span>
             ) : (
@@ -79,11 +78,11 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
                 href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="min-w-0 flex-1 truncate text-[11.5px] text-ink hover:text-accent"
+                className="min-w-0 flex-1 truncate text-[13px] text-ink hover:text-accent"
                 title={l.url}
               >
                 {l.label}
-                <span className="ml-2 hidden text-[9px] text-ink/30 sm:inline">
+                <span className="ml-2 hidden text-[11px] text-ink/35 sm:inline">
                   {(() => {
                     try {
                       return new URL(l.url).hostname;
@@ -99,7 +98,7 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
                 setEditId(l.id);
                 setEditDraft({ label: l.label, url: l.url });
               }}
-              className="h-8 w-7 flex-none text-[10px] text-ink/20 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+              className="h-8 w-7 flex-none text-[12px] text-ink/20 hover:text-accent md:opacity-0 md:group-hover:opacity-100"
               aria-label={`edit link ${l.label}`}
             >
               ✎
@@ -140,23 +139,23 @@ export function LinksPanel({ slug, links }: { slug: string; links: LinkDTO[] }) 
             });
           }}
         >
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="label" className={inputCls} autoFocus />
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="url" inputMode="url" className={inputCls} />
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" className={inputCls} autoFocus />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL" inputMode="url" className={inputCls} />
           <div className="flex gap-2">
-            <button type="submit" className="min-h-[40px] flex-1 border border-line-strong text-[9px] font-bold tracking-[0.2em] text-accent hover:text-bright">
-              ATTACH
+            <button type="submit" className="btn-tint flex-1">
+              Add
             </button>
-            <button type="button" onClick={() => setAdding(false)} className="min-h-[40px] w-16 border border-line text-[9px] tracking-[0.2em] text-ink/40 hover:text-ink">
-              ESC
+            <button type="button" onClick={() => setAdding(false)} className="btn-quiet flex-none">
+              Cancel
             </button>
           </div>
         </form>
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="flex min-h-[40px] items-center gap-1 text-[9px] font-bold tracking-[0.22em] text-ink/40 hover:text-accent"
+          className="flex min-h-[40px] w-fit items-center gap-1 text-[13px] font-medium text-accent hover:text-[#409cff]"
         >
-          + ADD LINK
+          Add link
         </button>
       )}
     </section>
@@ -191,17 +190,20 @@ export function TagEditor({
 
   return (
     <section className="flex flex-col gap-2">
-      <SectionHeader label="TAGS" sub={`×${items.length}`} />
+      <SectionHeader
+        label="Tags"
+        sub={`${items.length} ${items.length === 1 ? "tag" : "tags"}`}
+      />
       <div className="flex flex-wrap gap-1.5">
         {items.map((t) => (
           <button
             key={t.name}
             onClick={() => commit(items.filter((x) => x.name !== t.name))}
-            className="group inline-flex min-h-[36px] items-center gap-1.5 border border-line px-2 text-[9px] tracking-[0.14em] text-ink/70 hover:border-danger/60"
+            className="group inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-white/5 px-3 text-[12px] text-ink/75 transition-colors hover:bg-danger/15"
             title="remove tag"
           >
-            <span className="h-1 w-1 rounded-full" style={{ background: t.color }} aria-hidden />
-            {t.name.toUpperCase()}
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.color }} aria-hidden />
+            {t.name}
             <span className="text-ink/30 group-hover:text-danger">×</span>
           </button>
         ))}
@@ -220,7 +222,7 @@ export function TagEditor({
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="+ tag"
+          placeholder="Add tag"
           list="all-tags"
           enterKeyHint="done"
           className={inputCls}
@@ -264,21 +266,18 @@ export function ProjectControls({
   }
 
   const selectCls =
-    "min-h-[44px] w-full cursor-pointer appearance-none border border-line bg-panel/70 pr-7 text-[10px] font-semibold tracking-[0.16em] text-bright hover:border-line-strong focus:border-line-strong focus:outline-none";
+    "min-h-[44px] w-full cursor-pointer appearance-none rounded-[10px] border border-line bg-white/5 pr-8 text-[13px] font-medium text-bright transition-colors hover:border-line-strong focus:border-accent/60 focus:outline-none";
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeader label="CONTROLS" />
+      <SectionHeader label="Controls" />
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1.5">
-          <span className="hud-sublabel">STATUS</span>
+          <span className="hud-sublabel">Status</span>
           <span className="relative">
             <span
               className="pointer-events-none absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
-              style={{
-                background: PROJECT_STATUS_META[localStatus].color,
-                boxShadow: `0 0 5px ${PROJECT_STATUS_META[localStatus].color}`,
-              }}
+              style={{ background: PROJECT_STATUS_META[localStatus].color }}
               aria-hidden
             />
             <select
@@ -296,16 +295,16 @@ export function ProjectControls({
           </span>
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="hud-sublabel">PRIORITY</span>
+          <span className="hud-sublabel">Priority</span>
           <span className="relative">
             <select
               value={localPriority}
               onChange={(e) => update({ priority: Number(e.target.value) })}
               className={`${selectCls} pl-3`}
             >
-              <option value={1}>P1 · NOW</option>
-              <option value={2}>P2 · NORMAL</option>
-              <option value={3}>P3 · WHENEVER</option>
+              <option value={1}>P1 · Now</option>
+              <option value={2}>P2 · Normal</option>
+              <option value={3}>P3 · Whenever</option>
             </select>
             <SelectChevron />
           </span>
@@ -323,13 +322,13 @@ export function ProjectControls({
             setTimeout(() => setPendingDelete(false), 3000);
           }
         }}
-        className={`min-h-[36px] self-end px-1 text-[9px] font-bold tracking-[0.22em] transition-colors ${
+        className={`min-h-[36px] self-end px-1 text-[12px] font-medium transition-colors ${
           pendingDelete
             ? "text-danger"
             : "text-ink/25 hover:text-danger/80"
         }`}
       >
-        {pendingDelete ? "TAP AGAIN TO ERASE PERMANENTLY" : "× ERASE PROJECT"}
+        {pendingDelete ? "Tap again to permanently delete" : "Delete project"}
       </button>
     </section>
   );
@@ -337,11 +336,19 @@ export function ProjectControls({
 
 function SelectChevron() {
   return (
-    <span
-      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-ink/40"
+    <svg
+      viewBox="0 0 10 6"
+      className="pointer-events-none absolute right-3 top-1/2 h-1.5 w-2.5 -translate-y-1/2 text-ink/40"
       aria-hidden
     >
-      ▾
-    </span>
+      <path
+        d="M1 1l4 4 4-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

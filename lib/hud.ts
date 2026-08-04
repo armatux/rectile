@@ -73,7 +73,7 @@ function buildBriefs(
   const stalest = tracked[0];
   if (stalest && stalest.idleDays >= 7) {
     briefs.push(
-      `${stalest.name.toUpperCase()} is ${stalest.tier === "dying" ? "dying" : "going stale"} — idle ${stalest.idleDays} days.` +
+      `${stalest.name} is ${stalest.tier === "dying" ? "dying" : "going stale"} — idle ${stalest.idleDays} days.` +
         (stalest.nextAction ? ` Next move: ${stalest.nextAction}` : ""),
     );
   }
@@ -82,14 +82,14 @@ function buildBriefs(
     briefs.push(
       `${hot.length} projects need attention. Worst offenders: ${hot
         .slice(0, 3)
-        .map((p) => p.name.toUpperCase())
+        .map((p) => p.name)
         .join(", ")}.`,
     );
   }
   const fresh = tracked.filter((p) => p.idleDays === 0);
   if (fresh.length > 0) {
     briefs.push(
-      `Touched today: ${fresh.map((p) => p.name.toUpperCase()).join(", ")}. Momentum holds.`,
+      `Touched today: ${fresh.map((p) => p.name).join(", ")}. Momentum holds.`,
     );
   }
   if (upcoming[0]) {
@@ -97,14 +97,14 @@ function buildBriefs(
   }
   if (tutor?.next_lesson) {
     briefs.push(
-      `Training uplink: L${tutor.level} ${tutor.title.toUpperCase()}, ${tutor.done}/${tutor.total} lessons. Next ▸ ${tutor.next_lesson}.`,
+      `Training: level ${tutor.level}, ${tutor.title}, ${tutor.done} of ${tutor.total} lessons. Next up: ${tutor.next_lesson}.`,
     );
   }
   if (unread !== null && unread > 0) {
     briefs.push(`${unread} unread message${unread === 1 ? "" : "s"} in the inbox.`);
   }
   if (briefs.length === 0) {
-    briefs.push("All systems nominal. Nothing stale, nothing due. Pick a project and build.");
+    briefs.push("All clear. Nothing stale, nothing due. Pick a project and build.");
   }
   return briefs;
 }

@@ -1,7 +1,10 @@
-# rectile
+# Scala (formerly rectile)
 
 Single-user, self-hosted project tracker PWA — a "mission control" for many
-parallel hobby/engineering projects. It answers two questions:
+parallel hobby/engineering projects, wearing an Apple design language
+(visionOS-style dark glass, iOS system colors — see `DESIGN.md`). Repo,
+container names, API paths and env vars keep the historical `rectile` name.
+It answers two questions:
 
 1. **"Where did I leave off?"** — every project has a feature roadmap
    (planned / in progress / built) and a quick-capture log, and always shows

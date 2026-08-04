@@ -1,7 +1,7 @@
 export type VoiceState = "idle" | "listening" | "responding";
 
 export const VOICE_COLOR: Record<VoiceState, string> = {
-  idle: "rgb(217 210 236 / 0.5)",
-  listening: "#b39cf5",
-  responding: "#5acdf5",
+  idle: "rgb(235 235 245 / 0.5)",
+  listening: "#0a84ff",
+  responding: "#64d2ff",
 };

@@ -12,8 +12,7 @@ export type DocDTO = {
   updatedAt: string;
 };
 
-const inputCls =
-  "min-h-[40px] w-full border border-line bg-panel/70 px-3 text-[12px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none";
+const inputCls = "field";
 
 /** Per-project markdown documentation: list → read (rendered) → edit.
  *  Writes ride the offline ops queue like every other mutation. */
@@ -65,8 +64,8 @@ export function DocsPanel({
     <div className="flex flex-col gap-2">
       <div className="hud-panel flex flex-col p-2">
         {docs.length === 0 && (
-          <p className="py-5 text-center text-[10px] tracking-[0.2em] text-ink/30">
-            NO DOCS · WRITE THE FIRST PAGE
+          <p className="py-5 text-center text-[12px] text-ink/35">
+            No docs yet — write the first page.
           </p>
         )}
         {docs.map((d) => (
@@ -77,27 +76,24 @@ export function DocsPanel({
                   setOpenId(openId === d.id ? null : d.id);
                   setEditing(null);
                 }}
-                className="min-w-0 flex-1 truncate text-left text-[11.5px] text-ink hover:text-bright"
+                className="min-w-0 flex-1 truncate text-left text-[13px] text-ink hover:text-bright"
               >
-                <span className="mr-2 text-[10px] text-accent" aria-hidden>
-                  ▤
-                </span>
                 {d.title}
               </button>
-              <span className="flex-none text-[9.5px] text-ink/35">{relTime(d.updatedAt)}</span>
+              <span className="flex-none text-[12px] text-ink/35">{relTime(d.updatedAt)}</span>
               <button
                 onClick={() => {
                   setEditing({ ...d });
                   setOpenId(d.id);
                 }}
-                className="flex-none px-1 text-[10px] text-ink/45 hover:text-accent"
+                className="flex-none px-1 text-[12px] text-ink/45 hover:text-accent"
                 aria-label={`edit ${d.title}`}
               >
                 ✎
               </button>
               <button
                 onClick={() => remove(d.id)}
-                className="flex-none px-1 text-[11px] text-ink/30 hover:text-danger"
+                className="flex-none px-1 text-[13px] text-ink/30 hover:text-danger"
                 aria-label={`delete ${d.title}`}
               >
                 ×
@@ -121,21 +117,15 @@ export function DocsPanel({
                   value={editing.body}
                   onChange={(e) => setEditing({ ...editing, body: e.target.value })}
                   rows={12}
-                  className={`${inputCls} min-h-[200px] resize-y py-2 font-mono text-[11.5px] leading-relaxed`}
+                  className={`${inputCls} min-h-[200px] resize-y py-2 font-mono text-[12px]! leading-relaxed`}
                   placeholder="markdown…"
                 />
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => save(editing)}
-                    className="min-h-[36px] border border-line-strong bg-accent/10 px-4 text-[9.5px] font-bold tracking-[0.22em] text-accent hover:bg-accent/20"
-                  >
-                    SAVE
+                  <button onClick={() => save(editing)} className="btn-tint">
+                    Save
                   </button>
-                  <button
-                    onClick={() => setEditing(null)}
-                    className="min-h-[36px] px-3 text-[9.5px] tracking-[0.22em] text-ink/40 hover:text-ink"
-                  >
-                    CANCEL
+                  <button onClick={() => setEditing(null)} className="btn-quiet">
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -146,11 +136,8 @@ export function DocsPanel({
       {creating ? (
         <NewDocForm onSave={create} onCancel={() => setCreating(false)} />
       ) : (
-        <button
-          onClick={() => setCreating(true)}
-          className="hud-panel flex min-h-[40px] w-fit items-center gap-2 px-4 text-[9.5px] font-bold tracking-[0.22em] text-accent transition-colors hover:border-line-strong hover:text-bright"
-        >
-          + NEW DOC
+        <button onClick={() => setCreating(true)} className="btn-quiet w-fit">
+          New doc
         </button>
       )}
     </div>
@@ -171,7 +158,7 @@ function NewDocForm({
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="TITLE"
+        placeholder="Title"
         maxLength={300}
         autoFocus
         className={inputCls}
@@ -181,20 +168,14 @@ function NewDocForm({
         onChange={(e) => setBody(e.target.value)}
         rows={8}
         placeholder="markdown…"
-        className={`${inputCls} min-h-[140px] resize-y py-2 font-mono text-[11.5px] leading-relaxed`}
+        className={`${inputCls} min-h-[140px] resize-y py-2 font-mono text-[12px]! leading-relaxed`}
       />
       <div className="flex gap-2">
-        <button
-          onClick={() => onSave(title, body)}
-          className="min-h-[36px] border border-line-strong bg-accent/10 px-4 text-[9.5px] font-bold tracking-[0.22em] text-accent hover:bg-accent/20"
-        >
-          CREATE ▸
+        <button onClick={() => onSave(title, body)} className="btn-tint">
+          Create
         </button>
-        <button
-          onClick={onCancel}
-          className="min-h-[36px] px-3 text-[9.5px] tracking-[0.22em] text-ink/40 hover:text-ink"
-        >
-          CANCEL
+        <button onClick={onCancel} className="btn-quiet">
+          Cancel
         </button>
       </div>
     </div>

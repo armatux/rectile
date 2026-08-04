@@ -4,20 +4,20 @@ export const PROJECT_STATUS_META: Record<
   Project["status"],
   { label: string; color: string }
 > = {
-  active: { label: "ACTIVE", color: "var(--color-ok)" },
-  paused: { label: "PAUSED", color: "var(--color-warn)" },
-  idea: { label: "IDEA", color: "var(--color-cyan)" },
-  done: { label: "DONE", color: "var(--color-accent)" },
-  archived: { label: "ARCHIVED", color: "var(--color-dim)" },
+  active: { label: "Active", color: "var(--color-ok)" },
+  paused: { label: "Paused", color: "var(--color-warn)" },
+  idea: { label: "Idea", color: "var(--color-cyan)" },
+  done: { label: "Done", color: "var(--color-accent)" },
+  archived: { label: "Archived", color: "var(--color-dim)" },
 };
 
 export const FEATURE_STATUS_META: Record<
   Feature["status"],
   { label: string; color: string }
 > = {
-  planned: { label: "PLANNED", color: "var(--color-dim)" },
-  in_progress: { label: "IN PROGRESS", color: "var(--color-warn)" },
-  built: { label: "BUILT", color: "var(--color-ok)" },
+  planned: { label: "Planned", color: "var(--color-dim)" },
+  in_progress: { label: "In progress", color: "var(--color-warn)" },
+  built: { label: "Built", color: "var(--color-ok)" },
 };
 
 export type StalenessTier = "fresh" | "stale" | "dying";
@@ -34,12 +34,12 @@ export const STALENESS_META: Record<
   StalenessTier,
   { color: string; dim: string }
 > = {
-  fresh: { color: "rgb(217 210 236 / 0.45)", dim: "rgb(217 210 236 / 0.35)" },
-  stale: { color: "var(--color-warn)", dim: "rgb(229 192 123 / 0.7)" },
-  dying: { color: "var(--color-danger)", dim: "rgb(224 108 117 / 0.8)" },
+  fresh: { color: "rgb(235 235 245 / 0.45)", dim: "rgb(235 235 245 / 0.35)" },
+  stale: { color: "var(--color-warn)", dim: "rgb(255 159 10 / 0.7)" },
+  dying: { color: "var(--color-danger)", dim: "rgb(255 69 58 / 0.8)" },
 };
 
-/** "now", "3h", "5d", "8w" — HUD-style compact relative time. */
+/** "now", "3h", "5d", "8w" — compact relative time. */
 export function relTime(date: Date | string): string {
   const ms = Date.now() - new Date(date).getTime();
   const min = Math.floor(ms / 60_000);

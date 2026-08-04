@@ -28,23 +28,24 @@ function langExt(language: string): Extension {
 const hudTheme = EditorView.theme(
   {
     "&": {
-      backgroundColor: "rgb(7 4 13 / 0.7)",
-      color: "#d9d2ec",
-      fontSize: "12.5px",
-      border: "1px solid rgb(179 156 245 / 0.18)",
+      backgroundColor: "#131318",
+      color: "#d8d8e2",
+      fontSize: "13px",
+      border: "1px solid rgb(255 255 255 / 0.08)",
+      borderRadius: "12px",
     },
-    "&.cm-focused": { outline: "none", borderColor: "rgb(179 156 245 / 0.45)" },
-    ".cm-content": { fontFamily: "var(--font-mono)", caretColor: "#b39cf5" },
-    ".cm-cursor": { borderLeftColor: "#b39cf5" },
+    "&.cm-focused": { outline: "none", borderColor: "rgb(10 132 255 / 0.5)" },
+    ".cm-content": { fontFamily: "var(--font-mono)", caretColor: "#0a84ff" },
+    ".cm-cursor": { borderLeftColor: "#0a84ff" },
     ".cm-gutters": {
-      backgroundColor: "rgb(18 10 34 / 0.6)",
-      color: "rgb(217 210 236 / 0.3)",
+      backgroundColor: "rgb(255 255 255 / 0.03)",
+      color: "rgb(235 235 245 / 0.3)",
       border: "none",
     },
-    ".cm-activeLine": { backgroundColor: "rgb(179 156 245 / 0.06)" },
-    ".cm-activeLineGutter": { backgroundColor: "rgb(179 156 245 / 0.1)" },
+    ".cm-activeLine": { backgroundColor: "rgb(255 255 255 / 0.04)" },
+    ".cm-activeLineGutter": { backgroundColor: "rgb(255 255 255 / 0.06)" },
     "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
-      backgroundColor: "rgb(179 156 245 / 0.25)",
+      backgroundColor: "rgb(10 132 255 / 0.28)",
     },
   },
   { dark: true },
@@ -84,5 +85,5 @@ export function CodeEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial, language]);
 
-  return <div ref={host} className="max-h-[60vh] overflow-auto" />;
+  return <div ref={host} className="max-h-[60vh] overflow-auto rounded-xl" />;
 }

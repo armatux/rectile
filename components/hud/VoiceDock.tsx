@@ -20,7 +20,7 @@ type RecogEvent = {
 };
 
 /** Bottom-left assistant dock: rotating typed briefs, optional mic with a
- *  "rectile" wake word (degrades gracefully where SpeechRecognition is
+ *  "scala" wake word (degrades gracefully where SpeechRecognition is
  *  unavailable — Brave, iOS PWA), spoken responses via speechSynthesis. */
 export function VoiceDock({
   briefs,
@@ -165,10 +165,10 @@ export function VoiceDock({
         tx = tx.toLowerCase();
         if (
           voiceRef.current === "idle" &&
-          (tx.includes("rectile") ||
-            tx.includes("reptile") ||
-            tx.includes("rec tile") ||
-            tx.includes("wreck"))
+          (tx.includes("scala") ||
+            tx.includes("scaler") ||
+            tx.includes("skala") ||
+            tx.includes("scholar"))
         ) {
           wake();
           return;
@@ -221,35 +221,40 @@ export function VoiceDock({
   }, [wake, respond, setVoice]);
 
   const vColor = VOICE_COLOR[voice];
-  const simLabel = { idle: "SIM WAKE", listening: "SIM REPLY", responding: "SIM END" }[voice];
+  const simLabel = { idle: "Simulate wake", listening: "Simulate reply", responding: "End" }[voice];
 
   return (
-    <div className="flex max-w-[300px] flex-col gap-2 border border-line bg-[rgb(10_6_20/0.9)] px-3 py-2.5 backdrop-blur-sm">
+    <div className="glass flex max-w-[300px] flex-col gap-2.5 px-3.5 py-3">
       <div className="flex items-center gap-3">
         <button
           onClick={advance}
           aria-label="next brief"
-          className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full border bg-panel/80 text-[12px] font-bold transition-colors hover:text-bright"
-          style={{ borderColor: vColor, color: vColor }}
+          className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-white/8 text-[13px] font-semibold transition-colors hover:bg-white/15"
+          style={{ color: vColor }}
         >
           R
         </button>
-        <span className="max-h-[31px] overflow-hidden text-[9.5px] leading-[1.6] text-ink/60">
+        <span className="max-h-[36px] overflow-hidden text-[12px] leading-[1.5] text-ink/65">
           {typed}
-          <span className="blink ml-0.5 inline-block h-2.5 w-[5px] bg-accent align-middle" />
+          <span className="blink ml-0.5 inline-block h-3 w-[2px] rounded-full bg-accent align-middle" />
         </span>
       </div>
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         <button
           onClick={startVoice}
-          className="whitespace-nowrap border border-line bg-panel/85 px-2 py-1 text-[8px] font-medium tracking-[0.16em] transition-colors hover:border-line-strong"
-          style={{ color: micOn ? "var(--color-ok)" : "rgb(217 210 236 / 0.7)" }}
+          className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/10"
+          style={{ color: micOn ? "var(--color-ok)" : "rgb(235 235 245 / 0.7)" }}
         >
-          ● {micOn ? "MIC LIVE" : "ENABLE MIC"}
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: micOn ? "var(--color-ok)" : "rgb(235 235 245 / 0.4)" }}
+            aria-hidden
+          />
+          {micOn ? "Mic on" : "Enable mic"}
         </button>
         <button
           onClick={simCycle}
-          className="whitespace-nowrap border border-line bg-panel/85 px-2 py-1 text-[8px] font-medium tracking-[0.16em] text-ink/70 transition-colors hover:border-line-strong hover:text-bright"
+          className="whitespace-nowrap rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-medium text-ink/70 transition-colors hover:bg-white/10 hover:text-bright"
         >
           {simLabel}
         </button>

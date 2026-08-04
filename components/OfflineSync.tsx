@@ -60,22 +60,21 @@ export function OfflineSync() {
     <button
       onClick={() => void flush()}
       disabled={busy}
-      className="fixed bottom-4 right-4 z-50 flex min-h-[40px] items-center gap-2 border border-line-strong bg-panel/95 px-3 text-[9px] font-bold tracking-[0.2em] backdrop-blur-sm"
-      style={{ boxShadow: "0 0 20px rgb(150 110 255 / 0.25)" }}
+      className="glass fixed bottom-4 right-4 z-50 flex min-h-[40px] items-center gap-2 px-4 text-[12px] font-medium"
+      style={{ borderRadius: 999 }}
       title={offline ? "offline — queued writes sync on reconnect" : "tap to sync now"}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${offline ? "pulse-dot" : ""}`}
         style={{
           background: offline ? "var(--color-danger)" : "var(--color-warn)",
-          boxShadow: `0 0 6px ${offline ? "var(--color-danger)" : "var(--color-warn)"}`,
         }}
         aria-hidden
       />
       <span className={offline ? "text-danger" : "text-warn"}>
-        {offline ? "LINK DOWN" : busy ? "SYNCING" : "SYNC"}
+        {offline ? "Offline" : busy ? "Syncing…" : "Sync"}
       </span>
-      {count > 0 && <span className="text-bright">{count} QUEUED</span>}
+      {count > 0 && <span className="text-bright tabular-nums">{count} queued</span>}
     </button>
   );
 }

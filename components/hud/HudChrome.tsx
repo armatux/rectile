@@ -31,15 +31,15 @@ const PIN_KEY = "hud_pinned";
 const SEL_KEY = "hud_sel";
 
 function Clock() {
-  const [time, setTime] = useState("--:--:--");
+  const [time, setTime] = useState("--:--");
   useEffect(() => {
-    const tick = () => setTime(new Date().toTimeString().slice(0, 8));
+    const tick = () => setTime(new Date().toTimeString().slice(0, 5));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
   return (
-    <span className="text-[9.5px] font-semibold tracking-[0.14em] text-accent tabular-nums">
+    <span className="text-[12px] font-medium text-ink/70 tabular-nums">
       {time}
     </span>
   );
@@ -58,21 +58,23 @@ function LinkStatus() {
     };
   }, []);
   return (
-    <span className="whitespace-nowrap text-[9.5px] font-medium tracking-[0.26em] text-ink/65">
-      LINK ·{" "}
-      <span style={{ color: online ? undefined : "var(--color-warn)" }}>
-        {online ? "ONLINE" : "OFFLINE"}
-      </span>
+    <span className="flex items-center gap-1.5 whitespace-nowrap text-[12px] text-ink/60">
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: online ? "var(--color-ok)" : "var(--color-warn)" }}
+        aria-hidden
+      />
+      {online ? "Online" : "Offline"}
     </span>
   );
 }
 
 function SectionRule({ label, sub }: { label: string; sub?: string }) {
   return (
-    <div className="mb-3 flex items-center gap-2">
+    <div className="mb-3 flex items-baseline gap-2">
       <span className="hud-label">{label}</span>
       {sub && <span className="hud-sublabel">{sub}</span>}
-      <div className="hud-rule" />
+      <div className="hud-rule self-center" />
     </div>
   );
 }
@@ -93,24 +95,19 @@ function SideStat({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-baseline gap-2">
-        <span
-          className="h-[5px] w-[5px] flex-none self-center rounded-full bg-accent"
-          style={{ boxShadow: "0 0 6px var(--color-accent)" }}
-          aria-hidden
-        />
-        <span className="flex-1 truncate text-[9px] font-medium tracking-[0.2em] text-ink/60">
+        <span className="flex-1 truncate text-[11px] font-medium text-ink/55">
           {label}
         </span>
         {note && (
           <span
-            className="truncate text-[9px] font-semibold tracking-[0.08em]"
-            style={{ color: noteColor ?? "rgb(217 210 236 / 0.4)" }}
+            className="truncate text-[11px]"
+            style={{ color: noteColor ?? "rgb(235 235 245 / 0.35)" }}
           >
             {note}
           </span>
         )}
       </div>
-      <span className="font-display text-[34px] font-bold leading-none tracking-[0.02em] text-bright">
+      <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-bright tabular-nums">
         {value}
       </span>
       {spark && <Sparkline values={spark} />}
@@ -118,16 +115,12 @@ function SideStat({
   );
 }
 
-function GlowBar({ pct }: { pct: number }) {
+function Bar({ pct }: { pct: number }) {
   return (
-    <div className="h-[3px] w-full bg-white/5">
+    <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
       <div
-        className="h-full transition-[width] duration-500"
-        style={{
-          width: `${Math.min(100, Math.max(0, pct))}%`,
-          background: "linear-gradient(90deg, rgb(150 110 255 / 0.7), var(--color-accent))",
-          boxShadow: "0 0 8px rgb(150 110 255 / 0.6)",
-        }}
+        className="h-full rounded-full bg-accent transition-[width] duration-500"
+        style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
       />
     </div>
   );
@@ -140,45 +133,42 @@ function TrainingUplink({ tutor }: { tutor: NonNullable<HudChromeData["tutor"]> 
   return (
     <Link href="/cpptutor" className="group flex flex-col gap-2.5">
       <div className="flex items-baseline gap-2.5">
-        <span
-          className="font-display text-[26px] font-bold leading-none text-bright"
-          style={{ textShadow: "0 0 22px rgb(150 110 255 / 0.45)" }}
-        >
+        <span className="font-display text-[26px] font-semibold leading-none tracking-[-0.02em] text-bright">
           L{d.level}
-          {d.prestige > 0 && <span className="text-[13px] text-accent">✦{d.prestige}</span>}
+          {d.prestige > 0 && <span className="text-[13px] text-accent"> ✦{d.prestige}</span>}
         </span>
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-[10px] font-bold tracking-[0.22em] text-accent group-hover:text-bright">
-            {d.title.toUpperCase()}
+          <span className="truncate text-[13px] font-medium text-bright/90 group-hover:text-bright">
+            {d.title}
           </span>
-          <span className="text-[8.5px] tracking-[0.14em] text-ink/50">
-            {d.xp} XP{d.streak > 0 && ` · STREAK ${d.streak}`}
+          <span className="text-[11px] text-ink/50 tabular-nums">
+            {d.xp} XP{d.streak > 0 && ` · ${d.streak}-day streak`}
           </span>
         </span>
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between">
-          <span className="text-[8px] tracking-[0.18em] text-ink/35">
-            LEVEL {d.level} → {d.level + 1}
+          <span className="text-[11px] text-ink/45">
+            Level {d.level} → {d.level + 1}
           </span>
-          <span className="text-[9px] font-semibold text-ink/70">
+          <span className="text-[11px] font-medium text-ink/70 tabular-nums">
             {into} / {span} XP
           </span>
         </div>
-        <GlowBar pct={(into / span) * 100} />
+        <Bar pct={(into / span) * 100} />
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between">
-          <span className="text-[8px] tracking-[0.18em] text-ink/35">LESSONS</span>
-          <span className="text-[9px] font-semibold text-ink/70">
+          <span className="text-[11px] text-ink/45">Lessons</span>
+          <span className="text-[11px] font-medium text-ink/70 tabular-nums">
             {d.done} / {d.total}
           </span>
         </div>
-        <GlowBar pct={d.total ? (d.done / d.total) * 100 : 0} />
+        <Bar pct={d.total ? (d.done / d.total) * 100 : 0} />
       </div>
-      <span className="truncate text-[9px] text-ink/50">
-        <span className="text-accent">next ▸ </span>
-        {d.next_lesson ? `${d.next_lesson} · ${d.next_module}` : "ALL LESSONS COMPLETE"}
+      <span className="truncate text-[12px] text-ink/55">
+        <span className="text-ink/40">Next: </span>
+        {d.next_lesson ? `${d.next_lesson} · ${d.next_module}` : "all lessons complete"}
       </span>
     </Link>
   );
@@ -217,16 +207,16 @@ function LauncherSection({ apps }: { apps: LauncherApp[] }) {
 
   return (
     <section className="mb-7">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="hud-label">LAUNCHER</span>
-        <span className="hud-sublabel">APPS.{String(apps.length).padStart(2, "0")}</span>
-        <div className="hud-rule" />
+      <div className="mb-3 flex items-baseline gap-2">
+        <span className="hud-label">Apps</span>
+        <span className="hud-sublabel">{apps.length}</span>
+        <div className="hud-rule self-center" />
         <button
           onClick={editing ? () => setEditing(false) : startEdit}
-          className="text-[10px] text-ink/40 hover:text-accent"
+          className="text-[12px] text-ink/45 transition-colors hover:text-accent"
           aria-label="edit launcher"
         >
-          {editing ? "×" : "✎"}
+          {editing ? "Cancel" : "Edit"}
         </button>
       </div>
       {editing ? (
@@ -235,39 +225,33 @@ function LauncherSection({ apps }: { apps: LauncherApp[] }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={Math.max(4, draft.split("\n").length + 1)}
-            placeholder={"LABEL | https://url\nPROXMOX | https://192.168.1.190:8006"}
+            placeholder={"Label | https://url\nProxmox | https://192.168.1.190:8006"}
             autoFocus
-            className="w-full resize-y border border-line bg-panel/70 px-2.5 py-2 font-mono text-[10.5px] leading-relaxed text-bright placeholder:text-ink/25 focus:border-line-strong focus:outline-none"
+            className="field resize-y py-2 font-mono text-[12px] leading-relaxed"
           />
-          <button
-            onClick={save}
-            className="min-h-[36px] w-fit border border-line-strong bg-accent/10 px-4 text-[9px] font-bold tracking-[0.22em] text-accent hover:bg-accent/20"
-          >
-            SAVE
+          <button onClick={save} className="btn-tint w-fit">
+            Save
           </button>
         </div>
       ) : apps.length === 0 ? (
         <button
           onClick={startEdit}
-          className="text-[9.5px] tracking-[0.14em] text-ink/30 hover:text-accent"
+          className="text-[12px] text-ink/40 transition-colors hover:text-accent"
         >
-          + ADD YOUR APPS (one “LABEL | URL” per line)
+          + Add your apps (one “Label | URL” per line)
         </button>
       ) : (
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-2">
           {apps.map((a, i) => (
             <a
               key={i}
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-[36px] items-center gap-2 border border-line bg-panel/50 px-2.5 text-[9.5px] font-semibold tracking-[0.14em] text-ink/70 transition-colors hover:border-line-strong hover:text-bright"
+              className="flex min-h-[38px] items-center rounded-xl bg-white/5 px-3 text-[12px] font-medium text-ink/75 transition-colors hover:bg-white/10 hover:text-bright"
               title={a.url}
             >
-              <span className="text-[9px] text-accent" aria-hidden>
-                ⬡
-              </span>
-              <span className="min-w-0 truncate">{a.label.toUpperCase()}</span>
+              <span className="min-w-0 truncate">{a.label}</span>
             </a>
           ))}
         </div>
@@ -278,8 +262,6 @@ function LauncherSection({ apps }: { apps: LauncherApp[] }) {
 
 function NewProjectModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
-  const inputCls =
-    "min-h-[44px] w-full border border-line bg-panel/70 px-3 text-[12px] text-bright placeholder:text-ink/30 focus:border-line-strong focus:outline-none";
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -298,51 +280,50 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
   }
   return (
     <div
-      className="fixed inset-0 z-[28] flex items-center justify-center bg-[rgb(4_2_10/0.6)] backdrop-blur-[2px]"
+      className="fixed inset-0 z-[28] flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="fade-in flex w-[min(440px,90%)] flex-col gap-2 border border-line-strong bg-[rgb(14_8_26/0.95)] p-4"
+        className="glass-heavy fade-in flex w-[min(440px,90%)] flex-col gap-2.5 p-5"
       >
         <div className="mb-1 flex items-center gap-2">
-          <span className="hud-label">NEW PROJECT</span>
-          <div className="hud-rule" />
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-bright">
+            New project
+          </span>
+          <div className="flex-1" />
           <button
             type="button"
             onClick={onClose}
             aria-label="close"
-            className="flex h-8 w-8 items-center justify-center text-ink/40 hover:text-bright"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 text-[13px] text-ink/60 transition-colors hover:bg-white/15 hover:text-bright"
           >
-            ×
+            ✕
           </button>
         </div>
-        <input name="name" required maxLength={200} placeholder="NAME" className={inputCls} autoFocus />
+        <input name="name" required maxLength={200} placeholder="Name" className="field" autoFocus />
         <textarea
           name="description"
-          placeholder="description (optional)"
+          placeholder="Description (optional)"
           rows={2}
-          className={`${inputCls} resize-none py-2.5`}
+          className="field resize-none py-2.5"
         />
         <div className="flex gap-2">
-          <input name="category" placeholder="category" className={`${inputCls} min-w-0 flex-1`} />
+          <input name="category" placeholder="Category" className="field min-w-0 flex-1" />
           <select
             name="priority"
             defaultValue="2"
-            className="min-h-[44px] w-24 flex-none border border-line bg-panel/70 px-3 text-[12px] text-bright focus:border-line-strong focus:outline-none"
+            className="field w-24 flex-none appearance-none"
           >
             <option value="1">P1</option>
             <option value="2">P2</option>
             <option value="3">P3</option>
           </select>
         </div>
-        <input name="tags" placeholder="tags, comma, separated" className={inputCls} />
-        <button
-          type="submit"
-          className="min-h-[44px] border border-line-strong bg-accent/10 text-[10px] font-bold tracking-[0.24em] text-accent transition-colors hover:bg-accent/20 hover:text-bright"
-        >
-          INITIALIZE ▸
+        <input name="tags" placeholder="Tags, comma, separated" className="field" />
+        <button type="submit" className="btn-tint mt-1 min-h-[44px]">
+          Create
         </button>
       </form>
     </div>
@@ -479,10 +460,10 @@ export function HudChrome({
   const topLink = (href: string, active: boolean, label: ReactNode) => (
     <Link
       href={href}
-      className="whitespace-nowrap text-[9.5px] font-medium tracking-[0.26em] transition-colors hover:text-bright"
-      style={{ color: active ? "#efe9ff" : "rgb(217 210 236 / 0.65)" }}
+      className={`whitespace-nowrap rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+        active ? "bg-white/10 text-bright" : "text-ink/60 hover:text-bright"
+      }`}
     >
-      {active && <span className="text-accent">● </span>}
       {label}
     </Link>
   );
@@ -490,57 +471,49 @@ export function HudChrome({
   return (
     <div className="flex flex-col gap-8 lg:block">
       {/* ---- mobile brand ---- */}
-      <div className="safe-top order-0 flex flex-col gap-0.5 pt-3 lg:hidden">
-        <Link
-          href="/"
-          className="text-[22px] font-bold tracking-[0.18em] text-bright"
-          style={{ textShadow: "0 0 18px rgb(150 110 255 / 0.5)" }}
-        >
-          R.E.C.T.I.L.E.
+      <div className="safe-top order-0 flex items-baseline gap-1 pt-3 lg:hidden">
+        <Link href="/" className="text-[22px] font-semibold tracking-[-0.02em] text-bright">
+          Scala
         </Link>
-        <span className="text-[8px] font-medium tracking-[0.3em] text-ink/40">
-          PROJECT OPERATIONS TERMINAL
-        </span>
       </div>
 
       {/* ---- topline ---- */}
-      <div className="safe-top order-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-2 lg:fixed lg:left-[330px] lg:right-4 lg:top-[18px] lg:z-10 lg:pt-0">
-        {topLink("/", mode === "core", <>CORE · {data.vitals.hotCount} STALE</>)}
-        {topLink("/calendar", mode === "cal", <>CAL · {data.upcoming.length} UPCOMING</>)}
+      <div className="safe-top order-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 pt-2 lg:fixed lg:left-[330px] lg:right-4 lg:top-[14px] lg:z-10 lg:pt-0">
+        {topLink("/", mode === "core", <>Home · {data.vitals.hotCount} stale</>)}
+        {topLink("/calendar", mode === "cal", <>Calendar · {data.upcoming.length}</>)}
         {topLink(
           "/mail",
           mode === "mail",
-          <>MAIL · {data.mailUnread === null ? "—" : `${data.mailUnread} UNREAD`}</>,
+          <>Mail{data.mailUnread === null ? "" : ` · ${data.mailUnread}`}</>,
         )}
         <LinkStatus />
-        <span className="whitespace-nowrap text-[9.5px] font-medium tracking-[0.26em] text-ink/65">
-          VOICE ·{" "}
+        <span className="whitespace-nowrap text-[12px] text-ink/60">
           <span style={{ color: VOICE_COLOR[voice] }}>
-            {voice === "idle" ? "STANDBY" : voice === "listening" ? "LISTENING…" : "RESPONDING"}
+            {voice === "idle" ? "Voice ready" : voice === "listening" ? "Listening…" : "Responding"}
           </span>
         </span>
         <Clock />
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
           <button
             onClick={() => history.back()}
             aria-label="back"
-            className="flex h-7 w-7 items-center justify-center border border-line text-[10px] text-ink/45 hover:border-line-strong hover:text-accent"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[12px] text-ink/60 transition-colors hover:bg-white/10 hover:text-bright"
           >
-            ◂
+            ‹
           </button>
           <button
             onClick={() => history.forward()}
             aria-label="forward"
-            className="flex h-7 w-7 items-center justify-center border border-line text-[10px] text-ink/45 hover:border-line-strong hover:text-accent"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[12px] text-ink/60 transition-colors hover:bg-white/10 hover:text-bright"
           >
-            ▸
+            ›
           </button>
           <button
             onClick={() => location.reload()}
             aria-label="reload"
-            className="flex h-7 w-7 items-center justify-center border border-line text-[10px] text-ink/45 hover:border-line-strong hover:text-accent"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[12px] text-ink/60 transition-colors hover:bg-white/10 hover:text-bright"
           >
-            ⟳
+            ↻
           </button>
         </span>
       </div>
@@ -554,24 +527,6 @@ export function HudChrome({
             className="pointer-events-none relative mx-auto h-[min(340px,48vh)] w-[min(340px,48vh)] lg:fixed lg:left-[calc(330px+(100%-330px)*0.5)] lg:top-[46%] lg:mx-0 lg:h-[min(620px,82vh)] lg:w-[min(620px,82vh)] lg:-translate-x-1/2 lg:-translate-y-1/2"
           />
 
-          {/* corner deco frames */}
-          <div
-            className="pointer-events-none fixed hidden border border-line lg:block"
-            style={{ left: "calc(330px + (100% - 330px)*0.28)", top: "16%", width: 130, height: 92 }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none fixed hidden border lg:block"
-            style={{
-              left: "calc(330px + (100% - 330px)*0.9)",
-              top: "62%",
-              width: 130,
-              height: 92,
-              borderColor: "rgb(150 110 255 / 0.14)",
-            }}
-            aria-hidden
-          />
-
           {/* pinned tags (desktop only) */}
           {hydrated && pins.length > 0 && (
             <button
@@ -579,10 +534,10 @@ export function HudChrome({
                 bus.current.tags = {};
                 setPinned([]);
               }}
-              className="fixed top-[52px] z-[12] hidden -translate-x-1/2 whitespace-nowrap border border-line bg-[rgb(18_10_34/0.7)] px-4 py-1.5 text-[9px] font-medium tracking-[0.26em] text-ink/70 transition-colors hover:border-line-strong hover:text-bright lg:block"
-              style={{ left: "calc(330px + (100% - 330px)*0.5)" }}
+              className="glass fixed top-[48px] z-[12] hidden -translate-x-1/2 whitespace-nowrap px-4 py-1.5 text-[12px] font-medium text-ink/70 transition-colors hover:text-bright lg:block"
+              style={{ left: "calc(330px + (100% - 330px)*0.5)", borderRadius: 999 }}
             >
-              CLEAR ALL ×{pins.length}
+              Clear all ({pins.length})
             </button>
           )}
           {hydrated &&
@@ -592,20 +547,22 @@ export function HudChrome({
                 ref={(el) => {
                   bus.current.tags[p.slug] = { el, d: slot.d };
                 }}
-                className="fixed z-[11] hidden min-w-[190px] max-w-[230px] -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 border border-line bg-[rgb(14_8_26/0.82)] px-3 py-2 backdrop-blur-[3px] will-change-transform lg:flex"
+                className="glass fixed z-[11] hidden min-w-[190px] max-w-[240px] -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 px-3.5 py-2.5 will-change-transform lg:flex"
                 style={{ left: `calc(330px + (100% - 330px)*${slot.fx})`, top: slot.y }}
               >
-                <span className="flex-none text-[11px] text-accent" aria-hidden>
-                  ◈
-                </span>
+                <span
+                  className="h-2 w-2 flex-none rounded-full"
+                  style={{ background: PROJECT_STATUS_META[p.status].color }}
+                  aria-hidden
+                />
                 <button
                   onClick={() => setSelSlug(p.slug)}
                   className="flex min-w-0 flex-1 flex-col gap-0.5 text-left"
                 >
-                  <span className="truncate text-[10.5px] font-bold tracking-[0.18em] text-bright">
-                    {p.name.toUpperCase()}
+                  <span className="truncate text-[13px] font-medium text-bright">
+                    {p.name}
                   </span>
-                  <span className="truncate text-[8.5px] text-ink/45">
+                  <span className="truncate text-[11px] text-ink/50">
                     {p.idleDays === 0 ? "touched today" : `${p.idleDays}d idle`} ·{" "}
                     {PROJECT_STATUS_META[p.status].label.toLowerCase()}
                   </span>
@@ -616,60 +573,50 @@ export function HudChrome({
                     setPinned((prev) => prev.filter((s) => s !== p.slug));
                   }}
                   aria-label={`unpin ${p.name}`}
-                  className="flex-none p-0.5 text-[11px] text-ink/40 hover:text-bright"
+                  className="flex h-5 w-5 flex-none items-center justify-center rounded-full text-[11px] text-ink/40 transition-colors hover:bg-white/10 hover:text-bright"
                 >
-                  ×
+                  ✕
                 </button>
               </div>
             ))}
 
-          {/* primary directive */}
+          {/* focus card */}
           {sel && (
             <div className="z-[15] mx-auto flex w-full max-w-[660px] flex-col items-center gap-2 lg:fixed lg:bottom-[14px] lg:left-[calc(330px+(100%-330px)*0.5)] lg:w-[min(660px,calc((100%-330px)*0.92))] lg:-translate-x-1/2">
               <Link
                 href={`/p/${sel.slug}`}
-                className="max-w-full truncate whitespace-nowrap text-[9px] font-medium tracking-[0.34em] text-[rgb(179_156_245/0.85)] transition-colors hover:text-bright"
+                className="max-w-full truncate whitespace-nowrap text-[12px] font-medium text-ink/55 transition-colors hover:text-bright"
               >
-                PRIMARY DIRECTIVE · {sel.name.toUpperCase()} ↗
+                Focus · {sel.name} ›
               </Link>
               <div className="flex items-baseline gap-3">
-                <span
-                  className="font-display text-[clamp(44px,9vh,72px)] font-bold leading-none tracking-[0.01em] text-[#f4efff]"
-                  style={{ textShadow: "0 0 30px rgb(150 110 255 / 0.45)" }}
-                >
+                <span className="font-display text-[clamp(44px,9vh,72px)] font-semibold leading-none tracking-[-0.03em] text-bright tabular-nums">
                   {sel.pct}%
                 </span>
-                <span className="text-[12px] font-medium tracking-[0.3em] text-ink/55">
-                  COMPLETE
+                <span className="text-[13px] font-medium text-ink/50">
+                  complete
                 </span>
               </div>
               <div className="w-[min(420px,80%)]">
-                <GlowBar pct={sel.pct} />
+                <Bar pct={sel.pct} />
               </div>
-              <div
-                className="h-px w-full"
-                style={{
-                  background:
-                    "linear-gradient(90deg, transparent, rgb(179 156 245 / 0.6), transparent)",
-                }}
-              />
-              <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 whitespace-nowrap">
-                <Stat k="BUILT" v={`${sel.built} / ${sel.total}`} />
+              <div className="mt-1 flex flex-wrap justify-center gap-x-5 gap-y-1 whitespace-nowrap">
+                <Stat k="Built" v={`${sel.built}/${sel.total}`} />
                 <Stat
-                  k="TOUCHED"
-                  v={sel.idleDays === 0 ? "TODAY" : `${sel.idleDays}D AGO`}
-                  c={sel.tier === "fresh" ? "#efe9ff" : STALENESS_META[sel.tier].color}
+                  k="Touched"
+                  v={sel.idleDays === 0 ? "today" : `${sel.idleDays}d ago`}
+                  c={sel.tier === "fresh" ? "#f5f5f7" : STALENESS_META[sel.tier].color}
                 />
-                <Stat k="AGE" v={`${sel.ageDays}D`} />
+                <Stat k="Age" v={`${sel.ageDays}d`} />
                 <Stat
-                  k="STATUS"
+                  k="Status"
                   v={PROJECT_STATUS_META[sel.status].label}
                   c={PROJECT_STATUS_META[sel.status].color}
                 />
-                <Stat k="PRIORITY" v={`P${sel.priority}`} />
+                <Stat k="Priority" v={`P${sel.priority}`} />
               </div>
-              <div className="max-w-full truncate text-[10px] text-ink/50">
-                <span className="text-accent">next ▸ </span>
+              <div className="max-w-full truncate text-[12px] text-ink/55">
+                <span className="text-ink/40">Next: </span>
                 {sel.nextAction ?? "no open features — add the next move"}
               </div>
             </div>
@@ -685,54 +632,48 @@ export function HudChrome({
       )}
 
       {/* ---- sidebar ---- */}
-      <aside className="order-3 flex flex-col lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-10 lg:w-[330px] lg:overflow-y-auto lg:overflow-x-hidden lg:px-7 lg:pb-[150px] lg:pt-6">
-        <div className="mb-6 hidden flex-col gap-1.5 lg:flex">
-          <Link
-            href="/"
-            className="text-[26px] font-bold tracking-[0.18em] text-bright"
-            style={{ textShadow: "0 0 18px rgb(150 110 255 / 0.5)" }}
-          >
-            R.E.C.T.I.L.E.
+      <aside className="order-3 flex flex-col lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:z-10 lg:w-[330px] lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:border-line lg:bg-abyss/40 lg:px-7 lg:pb-[150px] lg:pt-6 lg:backdrop-blur-2xl lg:backdrop-saturate-150">
+        <div className="mb-6 hidden flex-col gap-0.5 lg:flex">
+          <Link href="/" className="text-[24px] font-semibold tracking-[-0.02em] text-bright">
+            Scala
           </Link>
-          <span className="text-[8.5px] font-medium tracking-[0.3em] text-ink/40">
-            PROJECT OPERATIONS TERMINAL
-          </span>
+          <span className="text-[12px] text-ink/45">Project hub</span>
         </div>
 
         <section className="mb-7">
-          <SectionRule label="SYSTEM VITALS" sub="PORTFOLIO.LINK" />
+          <SectionRule label="Overview" sub="portfolio" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-4 lg:flex lg:flex-col lg:gap-[18px]">
             <SideStat
-              label="ACTIVE PROJECTS"
+              label="Active projects"
               value={String(data.vitals.activeProjects)}
-              note="LOG · 14D"
+              note="14-day log"
               spark={data.vitals.activity}
             />
-            <SideStat label="AVG PROGRESS" value={`${data.vitals.avgProgress}%`} note="FEATURES BUILT" />
+            <SideStat label="Average progress" value={`${data.vitals.avgProgress}%`} note="features built" />
             <SideStat
-              label="NEEDS ATTENTION"
+              label="Needs attention"
               value={String(data.vitals.hotCount)}
-              note="IDLE ≥ 7D"
+              note="idle ≥ 7d"
               noteColor={data.vitals.hotCount > 0 ? "var(--color-warn)" : undefined}
             />
             <SideStat
-              label="LONGEST IDLE"
-              value={`${data.vitals.longestIdleDays}D`}
-              note={data.vitals.longestIdleName?.toUpperCase()}
+              label="Longest idle"
+              value={`${data.vitals.longestIdleDays}d`}
+              note={data.vitals.longestIdleName ?? undefined}
             />
           </div>
         </section>
 
         {data.tutor && (
           <section className="mb-7">
-            <SectionRule label="TRAINING UPLINK" sub={`CPPTUTOR · ${relTime(data.tutor.updatedAt)}`} />
+            <SectionRule label="Training" sub={`cpptutor · ${relTime(data.tutor.updatedAt)}`} />
             <TrainingUplink tutor={data.tutor} />
           </section>
         )}
 
         {directives.length > 0 && (
           <section className="mb-7">
-            <SectionRule label="DIRECTIVES" sub={`TOP.${directives.length}`} />
+            <SectionRule label="Next actions" sub={`top ${directives.length}`} />
             <div className="flex flex-col gap-2.5">
               {directives.map((p) => {
                 const done = !!(p.nextActionFeatureId && doneTicks[p.nextActionFeatureId]);
@@ -743,13 +684,20 @@ export function HudChrome({
                     className="flex items-start gap-2.5 text-left transition-opacity hover:opacity-80"
                     title={`${p.name} — mark "${p.nextAction}" built`}
                   >
-                    <span className="mt-px flex-none text-[11px] text-accent">
-                      {done ? "■" : "□"}
+                    <span
+                      className={`mt-0.5 flex h-[16px] w-[16px] flex-none items-center justify-center rounded-full border text-[9px] leading-none transition-colors ${
+                        done
+                          ? "border-accent bg-accent text-white"
+                          : "border-white/25 text-transparent"
+                      }`}
+                      aria-hidden
+                    >
+                      ✓
                     </span>
                     <span
-                      className="text-[11px] leading-[1.55]"
+                      className="text-[13px] leading-[1.5]"
                       style={{
-                        color: done ? "rgb(217 210 236 / 0.35)" : "rgb(233 228 247 / 0.85)",
+                        color: done ? "rgb(235 235 245 / 0.35)" : "rgb(245 245 247 / 0.85)",
                         textDecoration: done ? "line-through" : "none",
                       }}
                     >
@@ -765,7 +713,7 @@ export function HudChrome({
 
         {upcoming4.length > 0 && (
           <section className="mb-7">
-            <SectionRule label="REMINDERS" sub={`NEXT.${upcoming4.length}`} />
+            <SectionRule label="Reminders" sub={`next ${upcoming4.length}`} />
             <div className="flex flex-col gap-2">
               {upcoming4.map((u, i) => (
                 <Link
@@ -773,11 +721,11 @@ export function HudChrome({
                   href={u.href}
                   className="flex items-baseline gap-2 transition-opacity hover:opacity-80"
                 >
-                  <span className="w-[84px] flex-none text-[9px] text-ink/50 tabular-nums">
+                  <span className="w-[84px] flex-none text-[11px] text-ink/50 tabular-nums">
                     {u.when}
                   </span>
                   <span
-                    className="min-w-0 flex-1 truncate text-[10.5px]"
+                    className="min-w-0 flex-1 truncate text-[13px]"
                     style={{
                       color: u.source === "event" ? "var(--color-cyan)" : "var(--color-ink)",
                     }}
@@ -792,10 +740,10 @@ export function HudChrome({
 
         <section className="mb-5">
           <SectionRule
-            label="PROJECTS"
-            sub={`ROSTER.${String(data.projects.length).padStart(2, "0")} · STALEST FIRST`}
+            label="Projects"
+            sub={`${data.projects.length} · stalest first`}
           />
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-0.5">
             {data.projects.map((p) => {
               const selc = mode === "core" && sel?.slug === p.slug;
               const meta = PROJECT_STATUS_META[p.status];
@@ -803,27 +751,29 @@ export function HudChrome({
                 <button
                   key={p.id}
                   onClick={() => select(p)}
-                  className="flex min-h-[34px] items-center gap-2.5 px-1 py-1.5 text-left transition-colors hover:bg-accent/10"
-                  style={{ background: selc ? "rgb(150 110 255 / 0.1)" : undefined }}
+                  className={`flex min-h-[34px] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors ${
+                    selc ? "bg-white/10" : "hover:bg-white/5"
+                  }`}
                 >
                   <span
-                    className={`h-1 w-1 flex-none rounded-full ${p.tier === "dying" && p.status !== "done" ? "pulse-dot" : ""}`}
-                    style={{ background: meta.color, boxShadow: `0 0 5px ${meta.color}` }}
+                    className={`h-1.5 w-1.5 flex-none rounded-full ${p.tier === "dying" && p.status !== "done" ? "pulse-dot" : ""}`}
+                    style={{ background: meta.color }}
                     aria-hidden
                   />
                   <span
-                    className="min-w-0 flex-1 truncate text-[11px]"
-                    style={{ color: selc ? "#efe9ff" : "rgb(217 210 236 / 0.7)" }}
+                    className={`min-w-0 flex-1 truncate text-[13px] ${
+                      selc ? "font-medium text-bright" : "text-ink/75"
+                    }`}
                   >
                     {p.name}
                   </span>
-                  <span className="flex-none text-[9px] text-ink/45">{p.pct}%</span>
+                  <span className="flex-none text-[11px] text-ink/45 tabular-nums">{p.pct}%</span>
                   <span
-                    className="min-w-[26px] flex-none text-right text-[9px]"
+                    className="min-w-[30px] flex-none text-right text-[11px] tabular-nums"
                     style={{
                       color:
                         p.status === "done"
-                          ? "rgb(217 210 236 / 0.3)"
+                          ? "rgb(235 235 245 / 0.3)"
                           : STALENESS_META[p.tier].color,
                     }}
                   >
@@ -834,17 +784,14 @@ export function HudChrome({
             })}
           </div>
           {doneCount > 0 && (
-            <span className="mt-1 block text-[8px] tracking-[0.22em] text-ink/30">
-              {doneCount} DONE IN ROSTER · ARCHIVE ON /ARCHIVE
+            <span className="mt-1.5 block text-[11px] text-ink/35">
+              {doneCount} done · see Archive
             </span>
           )}
         </section>
 
-        <button
-          onClick={() => setNewOpen(true)}
-          className="mb-7 flex min-h-[44px] items-center justify-center gap-2 border border-line bg-panel/70 px-3 text-[9.5px] font-bold tracking-[0.24em] text-accent transition-colors hover:border-line-strong hover:text-bright"
-        >
-          + INITIALIZE PROJECT
+        <button onClick={() => setNewOpen(true)} className="btn-quiet mb-7 min-h-[40px]">
+          + New project
         </button>
 
         <LauncherSection apps={data.launcher} />
@@ -852,19 +799,19 @@ export function HudChrome({
         <nav className="mt-0 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-4">
           {(
             [
-              ["/cpptutor", "TUTOR"],
-              ["/reminders", "REMS"],
-              ["/review", "WEEK"],
-              ["/vault", "VAULT"],
-              ["/stale", "STALE"],
-              ["/archive", "ARCHIVE"],
-              ["/search?q=", "SEARCH"],
+              ["/cpptutor", "Tutor"],
+              ["/reminders", "Reminders"],
+              ["/review", "Week"],
+              ["/vault", "Vault"],
+              ["/stale", "Stale"],
+              ["/archive", "Archive"],
+              ["/search?q=", "Search"],
             ] as const
           ).map(([href, label]) => (
             <Link
               key={href}
               href={href}
-              className="text-[9px] font-bold tracking-[0.24em] text-ink/45 transition-colors hover:text-accent"
+              className="text-[12px] font-medium text-ink/50 transition-colors hover:text-bright"
             >
               {label}
             </Link>
@@ -890,9 +837,9 @@ export function HudChrome({
 
 function Stat({ k, v, c }: { k: string; v: string; c?: string }) {
   return (
-    <span className="text-[9.5px] font-medium tracking-[0.18em] text-ink/45">
+    <span className="text-[12px] text-ink/50">
       {k}{" "}
-      <span className="font-bold" style={{ color: c ?? "#efe9ff" }}>
+      <span className="font-semibold" style={{ color: c ?? "#f5f5f7" }}>
         {v}
       </span>
     </span>

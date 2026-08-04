@@ -53,7 +53,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: SP 
     if (!r.dueAt) continue;
     events.push({
       uid: `rem-${r.id}`,
-      title: `⚑ ${r.title}`,
+      title: r.title,
       startsAt: r.dueAt.toISOString(),
       allDay: false,
       source: "reminder",
@@ -93,13 +93,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: SP 
   return (
     <HudChrome data={chrome} mode="cal">
       <div className="flex flex-col gap-6 lg:pb-4">
-        <SectionHeader label="CALENDAR" sub={monthISO} />
+        <SectionHeader label="Calendar" sub={monthISO} />
         <CalendarView
           monthISO={monthISO}
           gridStart={start.toISOString()}
           events={events}
         />
-        <SectionHeader label="SUBSCRIPTIONS" sub={`×${subs.length}`} />
+        <SectionHeader
+          label="Subscriptions"
+          sub={`${subs.length} ${subs.length === 1 ? "subscription" : "subscriptions"}`}
+        />
         <SubscriptionsPanel subs={subs} errors={subErrors} />
       </div>
     </HudChrome>

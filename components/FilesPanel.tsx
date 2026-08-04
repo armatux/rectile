@@ -56,8 +56,8 @@ function Preview({ file }: { file: FileDTO }) {
   if (kind === "model") {
     if (!mvReady)
       return (
-        <p className="py-6 text-center text-[10px] tracking-[0.2em] text-ink/40">
-          LOADING 3D VIEWER…
+        <p className="py-6 text-center text-[12px] text-ink/40">
+          Loading 3D viewer…
         </p>
       );
     /* model-viewer is a custom element — React renders it verbatim */
@@ -67,7 +67,7 @@ function Preview({ file }: { file: FileDTO }) {
         camera-controls="true"
         auto-rotate="true"
         exposure="0.9"
-        style={{ width: "100%", height: "340px", background: "rgb(7 4 13)" }}
+        style={{ width: "100%", height: "340px", background: "rgb(10 10 15)", borderRadius: 12 }}
       />
     );
   }
@@ -78,8 +78,8 @@ function Preview({ file }: { file: FileDTO }) {
   if (kind === "video")
     return <video controls src={url} className="max-h-[340px] w-full bg-black" />;
   return (
-    <p className="py-4 text-center text-[10px] tracking-[0.2em] text-ink/40">
-      NO INLINE PREVIEW · DOWNLOAD TO OPEN
+    <p className="py-4 text-center text-[12px] text-ink/40">
+      No inline preview — download to open.
     </p>
   );
 }
@@ -153,8 +153,8 @@ export function FilesPanel({
     <div className="flex flex-col gap-2">
       <div className="hud-panel flex flex-col p-2">
         {files.length === 0 && (
-          <p className="py-5 text-center text-[10px] tracking-[0.2em] text-ink/30">
-            VAULT EMPTY · UPLOAD SOMETHING
+          <p className="py-5 text-center text-[12px] text-ink/35">
+            No files yet — upload something.
           </p>
         )}
         {files.map((f) => (
@@ -162,35 +162,32 @@ export function FilesPanel({
             <div className="flex items-baseline gap-3 px-2 py-2.5">
               <button
                 onClick={() => setOpenId(openId === f.id ? null : f.id)}
-                className="min-w-0 flex-1 truncate text-left text-[11.5px] text-ink hover:text-bright"
+                className="min-w-0 flex-1 truncate text-left text-[13px] text-ink hover:text-bright"
                 title={`${f.name} · sha256 preview`}
               >
-                <span className="mr-2 text-[10px] text-accent" aria-hidden>
-                  {{ model: "◇", image: "▣", audio: "♫", video: "▶", other: "▤" }[kindOf(f)]}
-                </span>
                 {f.name}
               </button>
               {showProject && f.projectSlug && (
-                <span className="hidden flex-none text-[9px] tracking-[0.12em] text-ink/40 sm:inline">
-                  {f.projectName?.toUpperCase()}
+                <span className="hidden flex-none text-[11px] text-ink/40 sm:inline">
+                  {f.projectName}
                 </span>
               )}
-              <span className="flex-none text-[9.5px] tabular-nums text-ink/45">
+              <span className="flex-none text-[12px] tabular-nums text-ink/45">
                 {fmtSize(f.size)}
               </span>
-              <span className="hidden flex-none text-[9.5px] text-ink/35 sm:inline">
+              <span className="hidden flex-none text-[12px] text-ink/35 sm:inline">
                 {relTime(f.createdAt)}
               </span>
               <a
                 href={`/files/f/${f.id}?dl=1`}
-                className="flex-none text-[10px] text-ink/45 hover:text-accent"
+                className="flex-none text-[12px] text-ink/45 hover:text-accent"
                 aria-label={`download ${f.name}`}
               >
                 ↓
               </a>
               <button
                 onClick={() => void remove(f)}
-                className="flex-none px-1 text-[11px] text-ink/30 hover:text-danger"
+                className="flex-none px-1 text-[13px] text-ink/30 hover:text-danger"
                 aria-label={`delete ${f.name}`}
               >
                 ×
@@ -208,14 +205,14 @@ export function FilesPanel({
         <button
           onClick={() => inputRef.current?.click()}
           disabled={busy !== null}
-          className="hud-panel flex min-h-[40px] items-center gap-2 px-4 text-[9.5px] font-bold tracking-[0.22em] text-accent transition-colors hover:border-line-strong hover:text-bright disabled:opacity-50"
+          className="btn-tint disabled:opacity-50"
         >
-          {busy ? `UPLOADING ${busy.slice(0, 24)}…` : "+ UPLOAD"}
+          {busy ? `Uploading ${busy.slice(0, 24)}…` : "Upload"}
         </button>
-        <span className="text-[8.5px] tracking-[0.14em] text-ink/30">
-          MAX 500 MB · GLB/GLTF GET 3D PREVIEW
+        <span className="text-[11px] text-ink/35">
+          Max 500 MB · GLB/GLTF get a 3D preview
         </span>
-        {error && <span className="text-[9px] text-danger">{error}</span>}
+        {error && <span className="text-[12px] text-danger">{error}</span>}
       </div>
       <input
         ref={inputRef}

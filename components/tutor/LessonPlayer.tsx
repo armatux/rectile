@@ -32,36 +32,50 @@ type FeedItem =
   | { kind: "warn"; text: string };
 
 function eventStyle(text: string) {
-  if (text.includes("LEVEL UP")) return "text-warn font-bold";
-  if (text.startsWith("+") && text.includes("XP")) return "text-accent font-semibold";
+  if (text.includes("LEVEL UP")) return "text-warn font-semibold";
+  if (text.startsWith("+") && text.includes("XP")) return "text-accent font-medium";
   if (text.startsWith("−") && text.includes("XP")) return "text-warn";
   if (text.includes("streak")) return "text-ok";
   return "text-ink/70";
 }
 
+function LockIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 12 12" className={className} aria-hidden>
+      <path
+        d="M4 5V3.8a2 2 0 1 1 4 0V5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <rect x="2.6" y="5" width="6.8" height="5.2" rx="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
 function Feed({ items }: { items: FeedItem[] }) {
   if (!items.length) return null;
   return (
-    <div className="hud-panel flex flex-col gap-1.5 p-3 fade-in">
+    <div className="glass flex flex-col gap-1.5 p-3 fade-in">
       {items.map((it, i) =>
         it.kind === "unlock" ? (
-          <p key={i} className="text-[11px] font-bold tracking-[0.14em] text-warn">
-            ★ UNLOCKED — {it.unlock.title.toUpperCase()} ({it.unlock.kind})
+          <p key={i} className="text-[12px] font-semibold text-warn">
+            ★ Unlocked — {it.unlock.title} ({it.unlock.kind})
           </p>
         ) : it.kind === "primer" ? (
-          <details key={i} className="text-[10.5px] text-ink/70">
+          <details key={i} className="text-[12px] text-ink/70">
             <summary className="cursor-pointer text-accent">
-              📖 the tutor left a primer — read it
+              The tutor left a primer — read it
             </summary>
             <div
-              className="md mt-2 border border-line p-3"
+              className="md mt-2 rounded-xl border border-line bg-white/[0.03] p-3"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(it.text) }}
             />
           </details>
         ) : (
           <p
             key={i}
-            className={`text-[10.5px] tracking-[0.06em] ${
+            className={`text-[12px] ${
               it.kind === "warn" ? "text-danger" : eventStyle(it.text)
             }`}
           >
@@ -86,15 +100,15 @@ function Btn({
 }) {
   const toneCls =
     tone === "primary"
-      ? "border-accent/60 text-accent hover:bg-accent/10"
+      ? "btn-tint"
       : tone === "danger"
-        ? "border-danger/40 text-danger/80 hover:bg-danger/10"
-        : "border-line text-ink/70 hover:text-bright hover:border-line-strong";
+        ? "inline-flex items-center justify-center gap-1.5 rounded-full bg-danger/15 px-4 text-[13px] font-medium text-danger transition-colors hover:bg-danger/25"
+        : "btn-quiet";
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-[38px] border px-3 py-1.5 text-[10px] font-bold tracking-[0.18em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${toneCls}`}
+      className={`${toneCls} min-h-[38px] disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {children}
     </button>
@@ -189,18 +203,18 @@ function QuizPanel({
   );
 
   if (err)
-    return <p className="text-[11px] text-danger">{err}</p>;
+    return <p className="text-[12px] text-danger">{err}</p>;
   if (!qs)
-    return <p className="text-[10px] tracking-[0.2em] text-ink/40 blink">OPENING QUIZ…</p>;
+    return <p className="text-[12px] text-ink/40 blink">Opening quiz…</p>;
 
   if (qs.finished) {
     return (
       <div className="flex flex-col gap-2">
-        <p className="text-[13px] font-bold text-ok">
-          ✓ QUIZ DONE — {qs.firstTry}/{qs.total} ON THE FIRST TRY
+        <p className="text-[15px] font-semibold text-ok">
+          ✓ Quiz done — {qs.firstTry}/{qs.total} on the first try
         </p>
         {qs.lastExplain && (
-          <p className="text-[11px] text-ink/60">{qs.lastExplain}</p>
+          <p className="text-[13px] text-ink/60">{qs.lastExplain}</p>
         )}
       </div>
     );
@@ -213,13 +227,13 @@ function QuizPanel({
   if (qs.awaitNext) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-[12px] font-bold text-ok">✓ correct</p>
+        <p className="text-[13px] font-semibold text-ok">✓ Correct</p>
         {qs.lastExplain && (
-          <p className="text-[11px] leading-relaxed text-ink/60">{qs.lastExplain}</p>
+          <p className="text-[13px] leading-relaxed text-ink/60">{qs.lastExplain}</p>
         )}
         <div>
           <Btn tone="primary" onClick={() => setQs({ ...qs, awaitNext: false, lastExplain: "" })}>
-            QUESTION {q.qi + 1} / {qs.total} ▸
+            Question {q.qi + 1} of {qs.total} ›
           </Btn>
         </div>
       </div>
@@ -230,20 +244,20 @@ function QuizPanel({
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
         <span className="hud-sublabel">
-          QUESTION {q.qi + 1} / {qs.total}
+          Question {q.qi + 1} of {qs.total}
         </span>
         {qs.alreadyDone && (
-          <span className="text-[9px] tracking-[0.18em] text-ink/40">
-            REPLAY — NO XP
+          <span className="text-[11px] text-ink/40">
+            Replay — no XP
           </span>
         )}
       </div>
-      <p className="text-[13px] leading-relaxed text-bright">{q.q}</p>
+      <p className="text-[15px] font-medium leading-relaxed text-bright">{q.q}</p>
       {qs.lastWrong && (
-        <div className="border border-danger/30 bg-danger/5 p-2.5">
-          <p className="text-[11px] font-bold text-danger">✗ not quite — try again</p>
+        <div className="rounded-xl border border-danger/30 bg-danger/10 p-3">
+          <p className="text-[12px] font-semibold text-danger">Not quite — try again</p>
           {qs.lastExplain && (
-            <p className="mt-1 text-[10.5px] leading-relaxed text-ink/60">{qs.lastExplain}</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-ink/60">{qs.lastExplain}</p>
           )}
         </div>
       )}
@@ -253,9 +267,9 @@ function QuizPanel({
             key={i}
             onClick={() => answer(i)}
             disabled={busy}
-            className="min-h-[42px] border border-line px-3 py-2 text-left text-[11.5px] text-ink transition-colors hover:border-accent/60 hover:text-bright disabled:opacity-50"
+            className="min-h-[42px] rounded-xl border border-line bg-white/[0.03] px-3.5 py-2 text-left text-[13px] text-ink transition-colors hover:border-accent/60 hover:bg-white/[0.06] hover:text-bright disabled:opacity-50"
           >
-            <span className="mr-2 font-bold text-accent">{letters[i]})</span>
+            <span className="mr-2 font-semibold text-accent">{letters[i]})</span>
             {c}
           </button>
         ))}
@@ -314,8 +328,8 @@ type CheckReply = {
 function Block({ label, text }: { label: string; text: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[8.5px] font-bold tracking-[0.2em] text-ink/40">{label}</span>
-      <pre className="overflow-x-auto border border-line bg-void/60 p-2 text-[11px] leading-relaxed text-ink">
+      <span className="text-[11px] font-medium text-ink/40">{label}</span>
+      <pre className="overflow-x-auto rounded-lg border border-line bg-black/35 p-3 text-[12px] leading-relaxed text-ink">
         {text || "(empty)"}
       </pre>
     </div>
@@ -324,34 +338,34 @@ function Block({ label, text }: { label: string; text: string }) {
 
 function TestRow({ t }: { t: TestResult }) {
   return (
-    <div className={`border p-2.5 ${t.ok ? "border-ok/30" : "border-danger/30"}`}>
-      <p className={`text-[11px] font-bold ${t.ok ? "text-ok" : "text-danger"}`}>
+    <div className={`rounded-xl border p-3 ${t.ok ? "border-ok/25 bg-ok/5" : "border-danger/25 bg-danger/5"}`}>
+      <p className={`text-[13px] font-semibold ${t.ok ? "text-ok" : "text-danger"}`}>
         {t.ok ? "✓" : "✗"} {t.label}
       </p>
       {!t.ok && (
         <div className="mt-2 flex flex-col gap-2">
           {t.timeout && (
-            <p className="text-[10.5px] text-danger">
+            <p className="text-[12px] text-danger">
               ran too long — infinite loop? waiting for input?
             </p>
           )}
           {t.crashed && !t.timeout && (
-            <p className="text-[10.5px] text-danger">
+            <p className="text-[12px] text-danger">
               crashed (non-zero exit / signal)
             </p>
           )}
-          {t.err ? <Block label="STDERR" text={t.err} /> : null}
-          {t.stdin ? <Block label="INPUT GIVEN" text={t.stdin} /> : null}
+          {t.err ? <Block label="stderr" text={t.err} /> : null}
+          {t.stdin ? <Block label="Input given" text={t.stdin} /> : null}
           {t.expect !== undefined && (
             <div className="grid gap-2 md:grid-cols-2">
-              <Block label="YOUR OUTPUT" text={t.got ?? ""} />
-              <Block label="EXPECTED (EXACT)" text={t.expect} />
+              <Block label="Your output" text={t.got ?? ""} />
+              <Block label="Expected (exact)" text={t.expect} />
             </div>
           )}
           {t.contains_missing && t.contains_missing.length > 0 && (
             <>
-              <Block label="OUTPUT MUST CONTAIN" text={t.contains_missing.join("\n")} />
-              <Block label="YOUR OUTPUT" text={t.got ?? ""} />
+              <Block label="Output must contain" text={t.contains_missing.join("\n")} />
+              <Block label="Your output" text={t.got ?? ""} />
             </>
           )}
         </div>
@@ -409,9 +423,9 @@ function ExercisePanel({
     [busy],
   );
 
-  if (err) return <p className="text-[11px] text-danger">{err}</p>;
+  if (err) return <p className="text-[12px] text-danger">{err}</p>;
   if (!ex)
-    return <p className="text-[10px] tracking-[0.2em] text-ink/40 blink">OPENING FORGE…</p>;
+    return <p className="text-[12px] text-ink/40 blink">Opening forge…</p>;
 
   const gateNeeded = gateInfo !== null && !ex.perks.autobuild;
 
@@ -445,42 +459,43 @@ function ExercisePanel({
   return (
     <div className="flex flex-col gap-4">
       <div
-        className="md text-[12px]"
+        className="md text-[13px]"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(ex.prompt) }}
       />
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] tracking-[0.16em] text-ink/40">
-        <span>SCAFFOLD: {ex.scaffold.toUpperCase()}</span>
-        <span>ATTEMPTS: {ex.attempts}</span>
-        {ex.werror && <span className="text-warn">-WERROR</span>}
-        {ex.sanitize_armed && <span className="text-cyan">SANITIZERS ARMED</span>}
-        {ex.solved && <span className="text-ok">✓ SOLVED</span>}
-        <span className="ml-auto">XP {ex.player.xp}</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink/45">
+        <span>Scaffold: {ex.scaffold}</span>
+        <span>Attempts: {ex.attempts}</span>
+        {ex.werror && <span className="text-warn">-Werror</span>}
+        {ex.sanitize_armed && <span className="text-cyan">Sanitizers armed</span>}
+        {ex.solved && <span className="text-ok">✓ Solved</span>}
+        <span className="ml-auto tabular-nums">{ex.player.xp} XP</span>
       </div>
 
       {ex.tool_missing ? (
-        <p className="border border-danger/30 p-3 text-[11px] text-danger">
-          no {ex.language} toolchain on the laptop — install with: {ex.tool_missing}
+        <p className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-[13px] text-danger">
+          No {ex.language} toolchain on the laptop — install with:{" "}
+          <span className="font-mono text-[12px]">{ex.tool_missing}</span>
         </p>
       ) : (
         <>
           <CodeEditor key={epoch} initial={ex.source} language={ex.language} docRef={docRef} />
 
           {gateNeeded && (
-            <div className="border border-warn/40 bg-warn/5 p-3">
-              <p className="text-[10px] font-bold tracking-[0.18em] text-warn">
-                ⚒ YOUR BUILD, YOUR COMMAND — Build Automation unlocks at L5.
-                TYPE THE COMMAND TO RUN THE CHECK:
+            <div className="rounded-xl border border-warn/30 bg-warn/10 p-4">
+              <p className="text-[12px] font-semibold text-warn">
+                Your build, your command — Build automation unlocks at L5.
+                Type the command to run the check:
               </p>
-              <p className="mt-1.5 font-mono text-[11px] text-ink/60">{gateInfo?.canonical}</p>
+              <p className="mt-1.5 font-mono text-[12px] text-ink/60">{gateInfo?.canonical}</p>
               <input
                 value={gateInput}
                 onChange={(e) => setGateInput(e.target.value)}
                 placeholder="$ type it here"
-                className="mt-2 min-h-[38px] w-full border border-line bg-void/60 px-2 font-mono text-[11.5px] text-bright focus:border-line-strong focus:outline-none"
+                className="field mt-2 font-mono"
               />
               {(gateInfo?.missing?.length || gateInfo?.surplus?.length) ? (
-                <div className="mt-1.5 text-[10px]">
+                <div className="mt-1.5 text-[12px]">
                   {gateInfo?.missing?.length ? (
                     <p className="text-danger">missing: {gateInfo.missing.join(" ")}</p>
                   ) : null}
@@ -494,7 +509,7 @@ function ExercisePanel({
 
           <div className="flex flex-wrap gap-2">
             <Btn tone="primary" onClick={doCheck} disabled={busy !== null}>
-              {busy === "check" ? "FORGING…" : "⚒ CHECK — BUILD + TESTS"}
+              {busy === "check" ? "Building…" : "Build and test"}
             </Btn>
             <Btn
               onClick={() =>
@@ -505,7 +520,7 @@ function ExercisePanel({
               }
               disabled={busy !== null}
             >
-              SYNC FILE
+              Sync file
             </Btn>
             {nextHintCost !== null &&
               (armed === "hint" ? (
@@ -523,11 +538,11 @@ function ExercisePanel({
                     })
                   }
                 >
-                  CONFIRM −{nextHintCost} XP
+                  Confirm −{nextHintCost} XP
                 </Btn>
               ) : (
                 <Btn onClick={() => setArmed("hint")}>
-                  💡 HINT #{hints.length + 1} ({nextHintCost} XP)
+                  Hint {hints.length + 1} ({nextHintCost} XP)
                 </Btn>
               ))}
             {!solution &&
@@ -543,7 +558,7 @@ function ExercisePanel({
                     })
                   }
                 >
-                  SOLUTION (STUDY, FREE)
+                  Solution (free)
                 </Btn>
               ) : armed === "solution" ? (
                 <Btn
@@ -560,11 +575,11 @@ function ExercisePanel({
                     })
                   }
                 >
-                  CONFIRM −{ex.solution_cost} XP + NO-HELP BONUS
+                  Confirm −{ex.solution_cost} XP + no-help bonus
                 </Btn>
               ) : (
                 <Btn onClick={() => setArmed("solution")}>
-                  SOLUTION ({ex.solution_cost} XP)
+                  Solution ({ex.solution_cost} XP)
                 </Btn>
               ))}
             <Btn
@@ -581,7 +596,7 @@ function ExercisePanel({
               }
               disabled={busy !== null}
             >
-              ◈ EXPLAIN ERROR ({ex.explain_cost === 0 ? "FREE" : `${ex.explain_cost} XP`})
+              Explain error ({ex.explain_cost === 0 ? "free" : `${ex.explain_cost} XP`})
             </Btn>
             {armed === "reset" ? (
               <Btn
@@ -600,18 +615,18 @@ function ExercisePanel({
                   })
                 }
               >
-                CONFIRM OVERWRITE
+                Confirm overwrite
               </Btn>
             ) : (
-              <Btn onClick={() => setArmed("reset")}>RESET FILE</Btn>
+              <Btn onClick={() => setArmed("reset")}>Reset file</Btn>
             )}
           </div>
 
           {hints.length > 0 && (
-            <div className="flex flex-col gap-1 border border-line p-3">
+            <div className="flex flex-col gap-1.5 rounded-xl border border-line bg-white/[0.03] p-3">
               {hints.map((h, i) => (
-                <p key={i} className="text-[11px] text-ink/80">
-                  <span className="mr-1.5 text-warn">💡</span>
+                <p key={i} className="text-[12px] leading-relaxed text-ink/80">
+                  <span className="mr-1.5 font-semibold text-warn">Hint {i + 1}</span>
                   {h}
                 </p>
               ))}
@@ -619,10 +634,9 @@ function ExercisePanel({
           )}
 
           {advices && advices.length > 0 && (
-            <div className="flex flex-col gap-1 border border-cyan/30 p-3">
+            <div className="flex flex-col gap-1.5 rounded-xl border border-cyan/25 bg-cyan/5 p-3">
               {advices.map((a, i) => (
-                <p key={i} className="text-[11px] text-ink/80">
-                  <span className="mr-1.5 text-cyan">◈</span>
+                <p key={i} className="text-[12px] leading-relaxed text-ink/80">
                   {a}
                 </p>
               ))}
@@ -631,8 +645,8 @@ function ExercisePanel({
 
           {solution && (
             <div className="flex flex-col gap-1">
-              <span className="hud-sublabel">SOLUTION — STUDY IT, THEN WRITE YOURS</span>
-              <pre className="overflow-x-auto border border-accent/30 bg-void/60 p-3 text-[11.5px] leading-relaxed text-ink">
+              <span className="hud-sublabel">Solution — study it, then write yours</span>
+              <pre className="overflow-x-auto rounded-xl border border-line bg-black/35 p-3 text-[12px] leading-relaxed text-ink">
                 {solution}
               </pre>
             </div>
@@ -641,19 +655,18 @@ function ExercisePanel({
           {check && (
             <div className="flex flex-col gap-2.5 fade-in">
               {check.build_cmd && (
-                <p className="font-mono text-[10px] text-ink/40">$ {check.build_cmd}</p>
+                <p className="font-mono text-[12px] text-ink/40">$ {check.build_cmd}</p>
               )}
               {check.build_ok === false ? (
                 <>
-                  <p className="text-[11.5px] font-bold text-danger">
-                    ✗ BUILD FAILED — read the first error, fix it, check again
+                  <p className="text-[13px] font-semibold text-danger">
+                    Build failed — read the first error, fix it, check again
                   </p>
-                  <Block label="COMPILER" text={check.build_output ?? ""} />
+                  <Block label="Compiler output" text={check.build_output ?? ""} />
                   {check.translations && check.translations.length > 0 && (
-                    <div className="flex flex-col gap-1 border border-cyan/30 p-3">
+                    <div className="flex flex-col gap-1.5 rounded-xl border border-cyan/25 bg-cyan/5 p-3">
                       {check.translations.map((a, i) => (
-                        <p key={i} className="text-[11px] text-ink/80">
-                          <span className="mr-1.5 text-cyan">◈</span>
+                        <p key={i} className="text-[12px] leading-relaxed text-ink/80">
                           {a}
                         </p>
                       ))}
@@ -663,16 +676,16 @@ function ExercisePanel({
               ) : (
                 <>
                   {check.build_output?.trim() ? (
-                    <Block label="COMPILER (WARNINGS)" text={check.build_output} />
+                    <Block label="Compiler warnings" text={check.build_output} />
                   ) : (
-                    <p className="text-[11px] font-bold text-ok">✓ build clean</p>
+                    <p className="text-[12px] font-semibold text-ok">✓ Build clean</p>
                   )}
                   <div className="flex flex-col gap-2">
                     {check.tests?.map((t, i) => <TestRow key={i} t={t} />)}
                   </div>
                   {check.solved && (
-                    <p className="text-[14px] font-bold text-ok">
-                      ✓ ALL TESTS PASS — EXERCISE SOLVED
+                    <p className="text-[15px] font-semibold text-ok">
+                      ✓ All tests pass — exercise solved
                     </p>
                   )}
                 </>
@@ -717,15 +730,15 @@ export function LessonPlayer({
   }, []);
 
   const stages: { key: "read" | "quiz" | "exercise"; label: string; done: boolean; open: boolean }[] = [
-    { key: "read", label: "READING", done: flags.read, open: true },
+    { key: "read", label: "Reading", done: flags.read, open: true },
     ...(lesson.has_quiz
-      ? [{ key: "quiz" as const, label: "QUIZ", done: flags.quiz_done, open: flags.read }]
+      ? [{ key: "quiz" as const, label: "Quiz", done: flags.quiz_done, open: flags.read }]
       : []),
     ...(lesson.has_exercise
       ? [
           {
             key: "exercise" as const,
-            label: "FORGE",
+            label: "Forge",
             done: flags.exercise_done,
             open: flags.read && (!lesson.has_quiz || flags.quiz_done),
           },
@@ -756,19 +769,19 @@ export function LessonPlayer({
             key={s.key}
             onClick={() => s.open && setStage(s.key)}
             disabled={!s.open}
-            className={`flex min-h-[38px] items-center gap-1.5 border px-3 text-[10px] font-bold tracking-[0.2em] transition-colors ${
+            className={`flex min-h-[38px] items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-colors ${
               stage === s.key
-                ? "border-accent/70 text-bright"
+                ? "bg-accent/15 text-bright"
                 : s.open
-                  ? "border-line text-ink/50 hover:text-accent"
-                  : "border-line text-ink/25"
+                  ? "bg-white/5 text-ink/60 hover:bg-white/10 hover:text-bright"
+                  : "bg-white/[0.03] text-ink/30"
             }`}
           >
-            <span className={s.done ? "text-ok" : "text-ink/30"}>
+            <span className={s.done ? "text-ok" : "text-ink/40"}>
               {s.done ? "✓" : `${i + 1}`}
             </span>
             {s.label}
-            {!s.open && " 🔒"}
+            {!s.open && <LockIcon className="opacity-60" />}
           </button>
         ))}
       </div>
@@ -776,26 +789,26 @@ export function LessonPlayer({
       <Feed items={feed} />
 
       {stage === "read" && (
-        <div className="hud-panel flex flex-col gap-4 p-5">
+        <div className="glass flex flex-col gap-4 p-5">
           <div className="md" dangerouslySetInnerHTML={{ __html: readingHtml }} />
           <div>
             {flags.read ? (
-              <span className="text-[10px] font-bold tracking-[0.2em] text-ok">
-                ✓ READ
+              <span className="text-[13px] font-semibold text-ok">
+                ✓ Read
                 {lesson.has_quiz || lesson.has_exercise ? (
                   <button
-                    className="ml-4 text-accent hover:text-bright"
+                    className="ml-4 font-medium text-accent transition-colors hover:text-[#409cff]"
                     onClick={() =>
                       setStage(lesson.has_quiz && !flags.quiz_done ? "quiz" : "exercise")
                     }
                   >
-                    CONTINUE ▸
+                    Continue ›
                   </button>
                 ) : null}
               </span>
             ) : (
               <Btn tone="primary" onClick={markRead} disabled={busy}>
-                {busy ? "…" : "MARK READ ▸"}
+                {busy ? "…" : "Mark as read"}
               </Btn>
             )}
           </div>
@@ -803,7 +816,7 @@ export function LessonPlayer({
       )}
 
       {stage === "quiz" && (
-        <div className="hud-panel p-5">
+        <div className="glass p-5">
           <QuizPanel
             lid={lesson.id}
             onExtras={pushExtras}
@@ -813,7 +826,7 @@ export function LessonPlayer({
       )}
 
       {stage === "exercise" && (
-        <div className="hud-panel p-5">
+        <div className="glass p-5">
           <ExercisePanel
             lid={lesson.id}
             onExtras={pushExtras}

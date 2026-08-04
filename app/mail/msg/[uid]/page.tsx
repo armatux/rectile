@@ -26,9 +26,9 @@ export default async function MessagePage({
   if (!acc || !Number.isInteger(uid) || uid < 1) {
     return (
       <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="MAIL" sub="NOT.FOUND" />
-        <Link href="/mail" className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent">
-          ◂ BACK TO MAIL
+        <SectionHeader label="Mail" sub="Not found" />
+        <Link href="/mail" className="text-[13px] font-medium text-accent hover:text-[#409cff]">
+          ‹ Back to mail
         </Link>
       </div>
     );
@@ -40,9 +40,9 @@ export default async function MessagePage({
   } catch (err) {
     return (
       <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="MAIL" sub="LINK.DOWN" />
-        <div className="hud-panel max-w-2xl p-6 text-[11.5px] text-ink/60">
-          {acc.label} UNREACHABLE — {String((err as Error)?.message ?? err)}
+        <SectionHeader label="Mail" sub="Connection failed" />
+        <div className="glass max-w-2xl p-6 text-[13px] text-ink/60">
+          Can&apos;t reach {acc.label} — {String((err as Error)?.message ?? err)}
         </div>
       </div>
     );
@@ -50,12 +50,12 @@ export default async function MessagePage({
   if (!msg) {
     return (
       <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="MAIL" sub="NOT.FOUND" />
-        <div className="hud-panel max-w-2xl p-6 text-[11.5px] text-ink/60">
+        <SectionHeader label="Mail" sub="Not found" />
+        <div className="glass max-w-2xl p-6 text-[13px] text-ink/60">
           No message with uid {uid} in {folder} on {acc.label}.
         </div>
-        <Link href={backHref} className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent">
-          ◂ BACK TO {folder.toUpperCase()}
+        <Link href={backHref} className="text-[13px] font-medium text-accent hover:text-[#409cff]">
+          ‹ Back to {folder}
         </Link>
       </div>
     );
@@ -65,17 +65,17 @@ export default async function MessagePage({
 
   return (
     <div className="flex flex-col gap-6 pt-5">
-      <SectionHeader label="MAIL" sub={`${acc.label} · MSG.${uid}`} />
+      <SectionHeader label="Mail" sub={`${acc.label} · message ${uid}`} />
       <Link
         href={backHref}
-        className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent"
+        className="text-[13px] font-medium text-accent hover:text-[#409cff]"
       >
-        ◂ BACK TO {folder.replace(/^(Folders|Labels)\//, "").toUpperCase()}
+        ‹ Back to {folder.replace(/^(Folders|Labels)\//, "")}
       </Link>
-      <article className="hud-panel flex max-w-3xl flex-col gap-4 p-5">
-        <header className="flex flex-col gap-1 border-b border-line pb-3">
+      <article className="glass flex max-w-3xl flex-col gap-4 p-6">
+        <header className="flex flex-col gap-1.5 border-b border-line pb-4">
           <div className="flex flex-wrap items-baseline gap-2">
-            <h1 className="text-[15px] font-bold text-bright">{msg.subject}</h1>
+            <h1 className="text-[17px] font-semibold text-bright">{msg.subject}</h1>
             {msg.labels.length > 0 &&
               (await listTags().then((ts) => {
                 const colors = new Map(ts.map((t) => [t.name.toLowerCase(), t.color]));
@@ -84,21 +84,21 @@ export default async function MessagePage({
                 ));
               }))}
           </div>
-          <p className="text-[10.5px] text-ink/60">
+          <p className="text-[12px] text-ink/60">
             <span className="text-ink">{msg.from}</span>
             {msg.fromAddr && <span className="text-ink/40"> &lt;{msg.fromAddr}&gt;</span>}
-            <span className="text-ink/35"> → {msg.to}</span>
+            <span className="text-ink/40"> · to {msg.to}</span>
           </p>
-          <time className="text-[9.5px] tracking-[0.12em] text-ink/40">
+          <time className="text-[12px] text-ink/40">
             {longDate(msg.date)}
           </time>
         </header>
-        <pre className="whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-ink/85">
+        <pre className="whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed text-ink/85">
           {msg.text}
         </pre>
       </article>
       <section className="flex max-w-3xl flex-col gap-2">
-        <span className="hud-sublabel">REPLY</span>
+        <span className="hud-label">Reply</span>
         <Composer
           accounts={mailAccounts().map((a) => ({ id: a.id, label: a.label, user: a.user }))}
           defaultAccount={acc.id}

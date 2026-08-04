@@ -10,23 +10,37 @@ import { relTime } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "cpptutor — skill tree · rectile" };
+export const metadata = { title: "cpptutor — skill tree" };
 
 /** Display rows of the unlock graph, top (always open) to bottom (endgame). */
 const TIERS: { label: string; sub: string; ids: string[] }[] = [
-  { label: "TIER I — FOUNDATIONS", sub: "ALWAYS OPEN", ids: ["cpp", "system"] },
+  { label: "Tier I — Foundations", sub: "Always open", ids: ["cpp", "system"] },
   {
-    label: "TIER II — BRANCHES",
-    sub: "UNLOCKED BY THE MAIN QUEST",
+    label: "Tier II — Branches",
+    sub: "Unlocked by the main quest",
     ids: ["problems", "netsec", "c"],
   },
-  { label: "TIER III — SIDE QUEST", sub: "VIA THE C TRACK", ids: ["rust"] },
+  { label: "Tier III — Side quest", sub: "Via the C track", ids: ["rust"] },
   {
-    label: "TIER IV — ENDGAME",
-    sub: "C++ CORE + FULL C TRACK",
+    label: "Tier IV — Endgame",
+    sub: "C++ core + full C track",
     ids: ["ai", "gpu"],
   },
 ];
+
+function LockIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 12 12" className={className} aria-hidden>
+      <path
+        d="M4 5V3.8a2 2 0 1 1 4 0V5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <rect x="2.6" y="5" width="6.8" height="5.2" rx="1.6" fill="currentColor" />
+    </svg>
+  );
+}
 
 function moduleState(m: SkillModule) {
   if (m.total > 0 && m.done >= m.total) return "complete" as const;
@@ -36,17 +50,10 @@ function moduleState(m: SkillModule) {
 }
 
 const MODULE_STYLE: Record<ReturnType<typeof moduleState>, string> = {
-  complete: "border-accent/60 bg-accent/10 text-bright",
-  active: "border-line-strong text-bright",
-  open: "border-line text-ink/60",
-  locked: "border-line text-ink/25",
-};
-
-const MODULE_MARK: Record<ReturnType<typeof moduleState>, string> = {
-  complete: "✓",
-  active: "◐",
-  open: "○",
-  locked: "⊘",
+  complete: "bg-ok/10 text-ok hover:bg-ok/20",
+  active: "bg-accent/10 text-accent hover:bg-accent/20",
+  open: "bg-white/5 text-ink/70 hover:bg-white/10 hover:text-bright",
+  locked: "bg-white/[0.03] text-ink/30",
 };
 
 function ModuleChip({ m }: { m: SkillModule }) {
@@ -57,15 +64,11 @@ function ModuleChip({ m }: { m: SkillModule }) {
       : "";
   const inner = (
     <>
-      <span
-        className={state === "complete" ? "text-accent" : ""}
-        aria-hidden
-      >
-        {MODULE_MARK[state]}
-      </span>
-      <span className="font-semibold">{m.id.toUpperCase()}</span>
+      {state === "complete" && <span aria-hidden>✓</span>}
+      {state === "locked" && <LockIcon className="flex-none opacity-70" />}
+      <span className="font-semibold">{m.id}</span>
       {state === "active" && (
-        <span className="text-ink/50">
+        <span className="tabular-nums opacity-70">
           {m.done}/{m.total}
         </span>
       )}
@@ -76,7 +79,7 @@ function ModuleChip({ m }: { m: SkillModule }) {
       )}
     </>
   );
-  const cls = `inline-flex items-center gap-1.5 border px-1.5 py-1 text-[9.5px] tracking-[0.1em] ${MODULE_STYLE[state]}`;
+  const cls = `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${MODULE_STYLE[state]}`;
   const title = `${m.id} — ${m.title} (${m.done}/${m.total})${hint}`;
   if (state === "locked") {
     return (
@@ -88,7 +91,7 @@ function ModuleChip({ m }: { m: SkillModule }) {
   return (
     <Link
       href={`/cpptutor/module/${m.id}`}
-      className={`${cls} transition-colors hover:border-accent`}
+      className={`${cls} transition-colors`}
       title={`${title} — open the lesson console`}
     >
       {inner}
@@ -99,13 +102,13 @@ function ModuleChip({ m }: { m: SkillModule }) {
 function TrackPanel({ t }: { t: SkillTrack }) {
   const complete = t.total > 0 && t.done >= t.total;
   const badge = complete
-    ? { label: "COMPLETE", color: "var(--color-ok)" }
+    ? { label: "Complete", color: "var(--color-ok)" }
     : t.unlocked
-      ? { label: "OPEN", color: "var(--color-accent)" }
-      : { label: "LOCKED", color: "rgb(217 210 236 / 0.35)" };
+      ? { label: "Open", color: "var(--color-accent)" }
+      : { label: "Locked", color: "rgb(235 235 245 / 0.35)" };
   return (
     <div
-      className={`hud-panel flex min-w-0 flex-1 basis-72 flex-col gap-3 p-4 ${
+      className={`glass flex min-w-0 flex-1 basis-72 flex-col gap-3 p-4 ${
         t.unlocked ? "" : "opacity-60 saturate-50"
       }`}
     >
@@ -113,21 +116,21 @@ function TrackPanel({ t }: { t: SkillTrack }) {
         <span className="text-[15px]" aria-hidden>
           {t.icon}
         </span>
-        <span className="min-w-0 flex-1 truncate font-display text-[13px] font-bold tracking-[0.06em] text-bright">
+        <span className="min-w-0 flex-1 truncate font-display text-[15px] font-semibold text-bright">
           {t.title}
         </span>
         <span
-          className="flex-none border border-line px-1.5 py-0.5 text-[8px] font-bold tracking-[0.22em]"
+          className="flex-none rounded-full bg-white/5 px-2.5 py-0.5 text-[11px] font-medium"
           style={{ color: badge.color }}
         >
           {badge.label}
         </span>
       </div>
-      <p className="text-[10.5px] leading-relaxed text-ink/50">{t.tagline}</p>
+      <p className="text-[12px] leading-relaxed text-ink/55">{t.tagline}</p>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
-          <span className="hud-sublabel">LESSONS</span>
-          <span className="text-[10px] font-semibold tracking-[0.08em] text-ink/70">
+          <span className="hud-sublabel">Lessons</span>
+          <span className="text-[12px] font-medium tabular-nums text-ink/70">
             {t.done} / {t.total}
           </span>
         </div>
@@ -139,8 +142,9 @@ function TrackPanel({ t }: { t: SkillTrack }) {
         ))}
       </div>
       {!t.unlocked && t.unlock_hint && (
-        <p className="text-[9.5px] tracking-[0.12em] text-ink/40">
-          ⛓ UNLOCK: {t.unlock_hint.toUpperCase()}
+        <p className="flex items-center gap-1.5 text-[12px] text-ink/45">
+          <LockIcon className="flex-none opacity-60" />
+          Unlocks: {t.unlock_hint}
         </p>
       )}
     </div>
@@ -171,30 +175,34 @@ function Heatmap({ activity }: { activity: Record<string, number> }) {
     n === 0
       ? "rgb(255 255 255 / 0.05)"
       : n === 1
-        ? "rgb(179 156 245 / 0.3)"
+        ? "rgb(10 132 255 / 0.35)"
         : n <= 3
-          ? "rgb(179 156 245 / 0.6)"
-          : "rgb(179 156 245 / 0.95)";
+          ? "rgb(10 132 255 / 0.6)"
+          : "rgb(10 132 255 / 0.95)";
   const active = cells.filter((c) => c.n > 0).length;
   const completions = cells.reduce((s, c) => s + c.n, 0);
 
   return (
-    <div className="hud-panel flex flex-col gap-3 p-4">
+    <div className="glass flex flex-col gap-3 p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="hud-sublabel">
-          LAST {WEEKS} WEEKS · {active} ACTIVE DAYS · {completions} COMPLETIONS
-        </span>
-        <span className="flex items-center gap-1 text-[8px] tracking-[0.2em] text-ink/40">
-          LESS
+        <div className="flex items-baseline gap-2">
+          <span className="hud-label">Activity</span>
+          <span className="hud-sublabel">
+            Last {WEEKS} weeks · {active} active days · {completions}{" "}
+            completions
+          </span>
+        </div>
+        <span className="flex items-center gap-1 text-[11px] text-ink/40">
+          Less
           {[0, 1, 2, 4].map((n) => (
             <span
               key={n}
-              className="inline-block h-2 w-2"
+              className="inline-block h-2 w-2 rounded-[2px]"
               style={{ background: fill(n) }}
               aria-hidden
             />
           ))}
-          MORE
+          More
         </span>
       </div>
       <div className="overflow-x-auto">
@@ -225,14 +233,12 @@ function Heatmap({ activity }: { activity: Record<string, number> }) {
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="hud-panel flex min-w-0 flex-1 basis-40 flex-col gap-1 p-4">
+    <div className="glass flex min-w-0 flex-1 basis-40 flex-col gap-1 p-4">
       <span className="hud-sublabel">{label}</span>
-      <span className="font-display text-[22px] font-bold leading-none text-bright">
+      <span className="font-display text-[28px] font-semibold leading-none tracking-[-0.02em] text-bright tabular-nums">
         {value}
       </span>
-      {sub && (
-        <span className="text-[9px] tracking-[0.14em] text-ink/45">{sub}</span>
-      )}
+      {sub && <span className="text-[11px] text-ink/45">{sub}</span>}
     </div>
   );
 }
@@ -243,10 +249,10 @@ export default async function CpptutorPage() {
   if (!row) {
     return (
       <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="TRAINING UPLINK" sub="CPPTUTOR.SYNC" />
-        <div className="hud-panel p-6 text-[11.5px] leading-relaxed text-ink/60">
-          NO UPLINK DATA YET — finish a lesson in a cpptutor session on the
-          laptop and rectile_sync.py will push progress here.
+        <SectionHeader label="Training" sub="cpptutor" />
+        <div className="glass p-6 text-[13px] leading-relaxed text-ink/60">
+          No progress synced yet — finish a lesson in a cpptutor session on the
+          laptop and it will appear here.
         </div>
       </div>
     );
@@ -263,16 +269,13 @@ export default async function CpptutorPage() {
 
   return (
     <div className="flex flex-col gap-6 pt-5">
-      <SectionHeader label="TRAINING UPLINK" sub="CPPTUTOR.SYNC" />
+      <SectionHeader label="Training" sub="cpptutor" />
 
       {/* operator identity */}
-      <div className="hud-panel flex flex-col gap-4 p-5">
+      <div className="glass flex flex-col gap-4 p-5">
         <div className="grid grid-cols-1 items-center gap-x-8 gap-y-4 lg:grid-cols-[auto_1fr_1fr]">
           <div className="flex items-baseline gap-3">
-            <span
-              className="font-display text-[52px] font-bold leading-none text-bright"
-              style={{ textShadow: "0 0 30px rgb(150 110 255 / 0.45)" }}
-            >
+            <span className="font-display text-[52px] font-semibold leading-none tracking-[-0.03em] text-bright tabular-nums">
               L{data.level}
               {data.prestige > 0 && (
                 <span className="ml-1 text-[18px] text-accent">
@@ -281,20 +284,20 @@ export default async function CpptutorPage() {
               )}
             </span>
             <span className="flex flex-col gap-1">
-              <span className="text-[12px] font-bold tracking-[0.24em] text-accent">
-                {data.title.toUpperCase()}
+              <span className="text-[15px] font-semibold text-bright">
+                {data.title}
               </span>
-              <span className="text-[10px] tracking-[0.14em] text-ink/50">
-                {data.xp} XP SPENDABLE · {data.xp_lifetime} LIFETIME
+              <span className="text-[12px] tabular-nums text-ink/50">
+                {data.xp} XP spendable · {data.xp_lifetime} lifetime
               </span>
             </span>
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between">
               <span className="hud-sublabel">
-                LEVEL {data.level} → {data.level + 1}
+                Level {data.level} → {data.level + 1}
               </span>
-              <span className="text-[10px] font-semibold tracking-[0.08em] text-ink/70">
+              <span className="text-[12px] font-medium tabular-nums text-ink/70">
                 {levelInto} / {levelSpan} XP
               </span>
             </div>
@@ -302,8 +305,8 @@ export default async function CpptutorPage() {
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between">
-              <span className="hud-sublabel">CURRICULUM</span>
-              <span className="text-[10px] font-semibold tracking-[0.08em] text-ink/70">
+              <span className="hud-sublabel">Curriculum</span>
+              <span className="text-[12px] font-medium tabular-nums text-ink/70">
                 {data.done} / {data.total} · {lessonPct}%
               </span>
             </div>
@@ -311,10 +314,8 @@ export default async function CpptutorPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1.5">
-          <p className="min-w-0 flex-1 basis-64 text-[11.5px] text-ink">
-            <span className="mr-2 text-[9px] font-bold tracking-[0.22em] text-accent">
-              NEXT ▸
-            </span>
+          <p className="min-w-0 flex-1 basis-64 text-[13px] text-ink">
+            <span className="mr-2 font-semibold text-ink/50">Next</span>
             {data.next_lesson ? (
               data.next_id ? (
                 <Link
@@ -326,8 +327,8 @@ export default async function CpptutorPage() {
                     {" "}
                     · {data.next_module} · {data.next_track}
                   </span>
-                  <span className="ml-2 text-[9px] font-bold tracking-[0.22em] text-accent">
-                    STUDY HERE ▸
+                  <span className="ml-2 text-[12px] font-medium text-accent">
+                    Study ›
                   </span>
                 </Link>
               ) : (
@@ -340,37 +341,37 @@ export default async function CpptutorPage() {
                 </>
               )
             ) : (
-              "ALL LESSONS COMPLETE"
+              "All lessons complete"
             )}
           </p>
           <Link
             href="/p/cpptutor"
-            className="text-[9px] font-bold tracking-[0.22em] text-ink/50 transition-colors hover:text-accent"
+            className="text-[12px] font-medium text-accent transition-colors hover:text-[#409cff]"
           >
-            MISSION LOG ▸
+            Project log ›
           </Link>
-          <span className="hud-sublabel">SYNCED {relTime(row.updatedAt)}</span>
+          <span className="hud-sublabel">Synced {relTime(row.updatedAt)}</span>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Stat
-          label="STREAK"
+          label="Streak"
           value={`${data.streak}d`}
-          sub={`BEST ${data.streak_best} · ${data.freezes ?? 0} FREEZE${(data.freezes ?? 0) === 1 ? "" : "S"} BANKED`}
+          sub={`Best ${data.streak_best} · ${data.freezes ?? 0} freeze${(data.freezes ?? 0) === 1 ? "" : "s"} banked`}
         />
         <Stat
-          label="PRESTIGE"
+          label="Prestige"
           value={data.prestige > 0 ? `✦${data.prestige}` : "—"}
-          sub={data.prestige > 0 ? "VETERAN CYCLE" : "FIRST CYCLE"}
+          sub={data.prestige > 0 ? "Veteran cycle" : "First cycle"}
         />
         <Stat
-          label="TRACKS OPEN"
+          label="Tracks open"
           value={`${tree.filter((t) => t.unlocked).length || "—"}${tree.length ? ` / ${tree.length}` : ""}`}
-          sub="OF THE SKILL TREE"
+          sub="of the skill tree"
         />
         <Stat
-          label="MODULES DONE"
+          label="Modules done"
           value={String(
             tree.reduce(
               (s, t) =>
@@ -379,10 +380,10 @@ export default async function CpptutorPage() {
               0,
             ),
           )}
-          sub={`OF ${tree.reduce((s, t) => s + t.modules.length, 0)} · ★ ${tree.reduce(
+          sub={`of ${tree.reduce((s, t) => s + t.modules.length, 0)} · ${tree.reduce(
             (s, t) => s + t.modules.filter((m) => m.mastered).length,
             0,
-          )} MASTERED`}
+          )} mastered`}
         />
       </div>
 
@@ -390,7 +391,10 @@ export default async function CpptutorPage() {
 
       {tree.length ? (
         <>
-          <SectionHeader label="SKILL TREE" sub="UNLOCK.GRAPH" />
+          <SectionHeader
+            label="Skill tree"
+            sub={`${tree.length} tracks`}
+          />
           <div className="flex flex-col gap-5">
             {TIERS.map((tier) => {
               const tracks = tier.ids
@@ -399,13 +403,9 @@ export default async function CpptutorPage() {
               if (!tracks.length) return null;
               return (
                 <div key={tier.label} className="flex flex-col gap-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold tracking-[0.26em] text-ink/45">
-                      {tier.label}
-                    </span>
-                    <span className="text-[8px] tracking-[0.2em] text-ink/25">
-                      {tier.sub}
-                    </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="hud-label">{tier.label}</span>
+                    <span className="hud-sublabel">{tier.sub}</span>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {tracks.map((t) => (
@@ -425,9 +425,9 @@ export default async function CpptutorPage() {
           </div>
         </>
       ) : (
-        <div className="hud-panel p-5 text-[11px] leading-relaxed text-ink/50">
-          FULL SKILL TREE ARRIVES ON NEXT SYNC — the tutor pushes the detailed
-          unlock graph after the next study session.
+        <div className="glass p-5 text-[13px] leading-relaxed text-ink/55">
+          The full skill tree arrives on the next sync — the tutor pushes the
+          detailed unlock graph after the next study session.
           {(data.tracks ?? []).length > 0 && (
             <span className="mt-2 block">
               {(data.tracks ?? [])

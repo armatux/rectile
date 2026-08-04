@@ -17,18 +17,18 @@ export default async function ArchivePage() {
     <div className="flex flex-col gap-5 pt-5">
       <div className="flex items-center gap-3">
         <SectionHeader
-          label="ARCHIVE"
-          sub={`COLD.STORAGE · ${String(archived.length).padStart(2, "0")}`}
+          label="Archive"
+          sub={`${archived.length} project${archived.length === 1 ? "" : "s"}`}
         />
         <Link
           href="/"
-          className="ml-auto text-[9px] font-bold tracking-[0.22em] text-ink/40 hover:text-accent"
+          className="ml-auto text-[12px] font-medium text-ink/50 hover:text-accent"
         >
-          ◂ BACK TO GRID
+          ‹ Back
         </Link>
       </div>
-      <p className="-mt-3 text-[10px] tracking-[0.08em] text-ink/40">
-        archived projects live here and nowhere else — set a project&apos;s
+      <p className="-mt-2 text-[12px] text-ink/50">
+        Archived projects live here and nowhere else — set a project&apos;s
         status back to anything active and it returns to the grid.
       </p>
 
@@ -37,8 +37,8 @@ export default async function ArchivePage() {
           <ProjectCard key={p.id} project={p} />
         ))}
         {archived.length === 0 && (
-          <p className="col-span-full py-10 text-center text-[11px] tracking-[0.2em] text-ink/40">
-            ARCHIVE EMPTY · NOTHING ON ICE
+          <p className="col-span-full py-10 text-center text-[12px] text-ink/40">
+            Nothing archived yet.
           </p>
         )}
       </div>

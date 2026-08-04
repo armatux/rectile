@@ -5,15 +5,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 function ClockDisplay() {
-  const [time, setTime] = useState("--:--:--");
+  const [time, setTime] = useState("--:--");
   useEffect(() => {
-    const tick = () => setTime(new Date().toTimeString().slice(0, 8));
+    const tick = () => setTime(new Date().toTimeString().slice(0, 5));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
   return (
-    <span className="text-[10px] font-semibold tracking-[0.14em] text-accent tabular-nums">
+    <span className="text-[12px] font-medium text-ink/70 tabular-nums">
       {time}
     </span>
   );
@@ -23,17 +23,17 @@ function ClockDisplay() {
  *  back/forward/reload need to live in the app itself. */
 function NavControls() {
   const btn =
-    "flex h-9 w-9 items-center justify-center border border-line text-[11px] text-ink/45 transition-colors hover:border-line-strong hover:text-accent";
+    "flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[13px] text-ink/60 transition-colors hover:bg-white/10 hover:text-bright";
   return (
-    <span className="flex items-center gap-1">
+    <span className="flex items-center gap-1.5">
       <button onClick={() => history.back()} className={btn} aria-label="back">
-        ◂
+        ‹
       </button>
       <button onClick={() => history.forward()} className={btn} aria-label="forward">
-        ▸
+        ›
       </button>
       <button onClick={() => location.reload()} className={btn} aria-label="reload">
-        ⟳
+        ↻
       </button>
     </span>
   );
@@ -45,11 +45,12 @@ function NavLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className={`flex min-h-[44px] items-center px-2 text-[10px] font-bold tracking-[0.24em] transition-colors ${
-        active ? "text-bright" : "text-ink/50 hover:text-accent"
+      className={`flex min-h-[44px] items-center rounded-full px-3 text-[13px] font-medium transition-colors ${
+        active
+          ? "text-bright"
+          : "text-ink/55 hover:text-bright"
       }`}
     >
-      {active && <span className="mr-1.5 text-accent">●</span>}
       {label}
     </Link>
   );
@@ -62,20 +63,28 @@ function SearchBox() {
   return (
     <form
       role="search"
-      className="flex min-w-0 flex-1 items-center gap-2 border border-line bg-panel/70 px-3 focus-within:border-line-strong sm:max-w-[300px]"
+      className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-white/6 px-4 transition-colors focus-within:bg-white/10 sm:max-w-[300px]"
       onSubmit={(e) => {
         e.preventDefault();
         if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
       }}
     >
-      <span className="text-[11px] text-accent" aria-hidden>
-        ⌕
-      </span>
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 16 16"
+        fill="none"
+        className="flex-none text-ink/45"
+        aria-hidden
+      >
+        <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.6" />
+        <path d="m11 11 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="SEARCH EVERYTHING"
-        className="min-h-[42px] w-full min-w-0 bg-transparent text-[11px] tracking-[0.08em] text-bright placeholder:text-ink/30 focus:outline-none"
+        placeholder="Search"
+        className="min-h-[38px] w-full min-w-0 bg-transparent text-[13px] text-bright placeholder:text-ink/35 focus:outline-none"
         enterKeyHint="search"
       />
     </form>
@@ -89,29 +98,23 @@ export function TopBar() {
   const pathname = usePathname();
   if (HUD_ROUTES.has(pathname)) return null;
   return (
-    <header className="safe-x safe-top sticky top-0 z-30 border-b border-line bg-void/80 backdrop-blur-sm">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
-        <Link href="/" className="flex min-h-[44px] flex-col justify-center">
-          <span
-            className="text-[19px] font-bold tracking-[0.18em] text-bright"
-            style={{ textShadow: "0 0 18px rgb(150 110 255 / 0.5)" }}
-          >
-            R.E.C.T.I.L.E.
-          </span>
-          <span className="hud-sublabel hidden sm:block">
-            PROJECT OPERATIONS TERMINAL
+    <header className="safe-x safe-top sticky top-0 z-30 border-b border-line bg-void/70 backdrop-blur-2xl backdrop-saturate-150">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+        <Link href="/" className="flex min-h-[44px] items-center pr-1">
+          <span className="text-[17px] font-semibold tracking-[-0.02em] text-bright">
+            Scala
           </span>
         </Link>
         <NavControls />
         <nav className="flex items-center">
-          <NavLink href="/" label="GRID" />
-          <NavLink href="/stale" label="STALE" />
-          <NavLink href="/cpptutor" label="TUTOR" />
-          <NavLink href="/calendar" label="CAL" />
-          <NavLink href="/reminders" label="REMS" />
-          <NavLink href="/review" label="WEEK" />
-          <NavLink href="/vault" label="VAULT" />
-          <NavLink href="/mail" label="MAIL" />
+          <NavLink href="/" label="Home" />
+          <NavLink href="/stale" label="Stale" />
+          <NavLink href="/cpptutor" label="Tutor" />
+          <NavLink href="/calendar" label="Calendar" />
+          <NavLink href="/reminders" label="Reminders" />
+          <NavLink href="/review" label="Week" />
+          <NavLink href="/vault" label="Vault" />
+          <NavLink href="/mail" label="Mail" />
         </nav>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-4 sm:flex-none">
           <Suspense fallback={null}>

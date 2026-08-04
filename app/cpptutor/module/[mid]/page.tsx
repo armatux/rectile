@@ -8,13 +8,16 @@ export const dynamic = "force-dynamic";
 function LinkDown() {
   return (
     <div className="flex flex-col gap-6 pt-5">
-      <SectionHeader label="LESSON CONSOLE" sub="LAPTOP.LINK" />
-      <div className="hud-panel p-6 text-[11.5px] leading-relaxed text-ink/60">
-        LAPTOP LINK DOWN — the lesson console talks to the tutor engine on the
+      <SectionHeader label="Lessons" sub="Laptop offline" />
+      <div className="glass p-6 text-[13px] leading-relaxed text-ink/60">
+        Laptop offline — the lesson console talks to the tutor engine on the
         laptop. Wake the laptop (and the cpptutor-bridge service) and reload.
       </div>
-      <Link href="/cpptutor" className="text-[10px] font-bold tracking-[0.22em] text-ink/50 hover:text-accent">
-        ◂ BACK TO SKILL TREE
+      <Link
+        href="/cpptutor"
+        className="text-[13px] font-medium text-accent transition-colors hover:text-[#409cff]"
+      >
+        ‹ Skill tree
       </Link>
     </div>
   );
@@ -40,8 +43,8 @@ export default async function ModulePage({
   if (!track || !mod) {
     return (
       <div className="flex flex-col gap-6 pt-5">
-        <SectionHeader label="LESSON CONSOLE" sub="NOT.FOUND" />
-        <div className="hud-panel p-6 text-[11.5px] text-ink/60">
+        <SectionHeader label="Lessons" sub="Not found" />
+        <div className="glass p-6 text-[13px] text-ink/60">
           No module “{mid}” in the curriculum.
         </div>
       </div>
@@ -53,66 +56,63 @@ export default async function ModulePage({
   return (
     <div className="flex flex-col gap-6 pt-5">
       <SectionHeader
-        label={`${track.icon} ${mod.id.toUpperCase()} — LESSON CONSOLE`}
-        sub={track.title.toUpperCase()}
+        label={`${track.icon} ${mod.id}`}
+        sub={track.title}
       />
 
-      <div className="hud-panel flex flex-col gap-3 p-5">
+      <div className="glass flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1
-            className="font-display text-[20px] font-bold text-bright"
-            style={{ textShadow: "0 0 24px rgb(150 110 255 / 0.4)" }}
-          >
+          <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-bright">
             {mod.title}
             {mod.mastered && (
               <span className="ml-2 text-warn" title="boss fight mastered">★</span>
             )}
           </h1>
-          <span className="text-[10px] font-semibold tracking-[0.08em] text-ink/70">
-            {mod.done} / {mod.total} LESSONS
+          <span className="text-[12px] font-medium tabular-nums text-ink/70">
+            {mod.done} / {mod.total} lessons
           </span>
         </div>
         {mod.description && (
-          <p className="text-[11.5px] leading-relaxed text-ink/60">{mod.description}</p>
+          <p className="text-[13px] leading-relaxed text-ink/60">{mod.description}</p>
         )}
         <ProgressBar built={mod.done} total={mod.total} height={4} />
         {tree.terminal_session && (
-          <p className="text-[9.5px] tracking-[0.14em] text-warn">
-            ⚠ A TERMINAL SESSION IS RUNNING ON THE LAPTOP — PROGRESS HERE IS
-            READ-ONLY UNTIL IT ENDS.
+          <p className="text-[12px] text-warn">
+            A terminal session is running on the laptop — progress here is
+            read-only until it ends.
           </p>
         )}
       </div>
 
       {locked ? (
-        <div className="hud-panel p-6 text-[11px] leading-relaxed text-ink/50">
-          ⛓ MODULE LOCKED
+        <div className="glass flex flex-col gap-1 p-6 text-[13px] leading-relaxed text-ink/55">
+          <span className="font-medium text-ink/80">Module locked</span>
           {mod.requires.length > 0 && (
-            <span className="mt-1 block">needs: {mod.requires.join(", ")}</span>
+            <span>Needs {mod.requires.join(", ")}</span>
           )}
           {!track.unlocked && track.unlock_hint && (
-            <span className="mt-1 block">track: {track.unlock_hint}</span>
+            <span>Track unlock: {track.unlock_hint}</span>
           )}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {mod.lessons.map((l, i) => {
             const stages = [
-              { label: "READ", on: l.read, always: true },
-              { label: "QUIZ", on: l.quiz_done, always: l.has_quiz },
-              { label: "FORGE", on: l.exercise_done, always: l.has_exercise },
+              { label: "Read", on: l.read, always: true },
+              { label: "Quiz", on: l.quiz_done, always: l.has_quiz },
+              { label: "Forge", on: l.exercise_done, always: l.has_exercise },
             ].filter((s) => s.always);
             return (
               <Link
                 key={l.id}
                 href={`/cpptutor/lesson/${l.id}`}
-                className="hud-panel group flex items-center gap-4 px-4 py-3 transition-colors hover:border-line-strong"
+                className="glass group flex items-center gap-4 px-4 py-3 transition-colors hover:border-line-strong"
               >
-                <span className="w-7 flex-none text-right font-display text-[15px] font-bold text-ink/40">
+                <span className="w-7 flex-none text-right text-[13px] font-semibold tabular-nums text-ink/35">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span
-                  className={`min-w-0 flex-1 truncate text-[12px] ${
+                  className={`min-w-0 flex-1 truncate text-[13px] ${
                     l.done ? "text-ink/50" : "text-bright"
                   }`}
                 >
@@ -122,10 +122,8 @@ export default async function ModulePage({
                   {stages.map((s) => (
                     <span
                       key={s.label}
-                      className={`border px-1.5 py-0.5 text-[8px] font-bold tracking-[0.18em] ${
-                        s.on
-                          ? "border-accent/60 text-accent"
-                          : "border-line text-ink/30"
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                        s.on ? "bg-ok/10 text-ok" : "bg-white/5 text-ink/35"
                       }`}
                     >
                       {s.on ? "✓ " : ""}
@@ -133,8 +131,8 @@ export default async function ModulePage({
                     </span>
                   ))}
                 </span>
-                <span className="flex-none text-[10px] text-ink/40 transition-colors group-hover:text-accent">
-                  {l.done ? "REPLAY ▸" : "ENTER ▸"}
+                <span className="flex-none text-[12px] text-ink/40 transition-colors group-hover:text-accent">
+                  {l.done ? "Replay ›" : "Open ›"}
                 </span>
               </Link>
             );
@@ -144,9 +142,9 @@ export default async function ModulePage({
 
       <Link
         href="/cpptutor"
-        className="text-[10px] font-bold tracking-[0.22em] text-ink/50 transition-colors hover:text-accent"
+        className="text-[13px] font-medium text-accent transition-colors hover:text-[#409cff]"
       >
-        ◂ BACK TO SKILL TREE
+        ‹ Skill tree
       </Link>
     </div>
   );

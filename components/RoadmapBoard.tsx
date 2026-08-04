@@ -23,9 +23,9 @@ const CYCLE: Record<Status, Status> = {
 };
 
 const COLUMNS: { status: Status; title: string; hint: string }[] = [
-  { status: "in_progress", title: "IN PROGRESS", hint: "DOING" },
-  { status: "planned", title: "PLANNED", hint: "QUEUE" },
-  { status: "built", title: "BUILT", hint: "DONE" },
+  { status: "in_progress", title: "In progress", hint: "doing" },
+  { status: "planned", title: "Planned", hint: "queue" },
+  { status: "built", title: "Built", hint: "done" },
 ];
 
 /* Desktop shows PLANNED → IN PROGRESS → BUILT left-to-right;
@@ -182,16 +182,11 @@ export function RoadmapBoard({
       {/* progress header */}
       <div className="flex flex-col gap-2">
         <div className="flex items-baseline gap-3">
-          <span
-            className="font-display text-[44px] font-bold leading-none text-bright sm:text-[56px]"
-            style={{ textShadow: "0 0 30px rgb(150 110 255 / 0.45)" }}
-          >
+          <span className="font-display text-[44px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-bright sm:text-[56px]">
             {built}
             <span className="text-ink/40"> / {total}</span>
           </span>
-          <span className="text-[11px] font-medium tracking-[0.3em] text-ink/55">
-            BUILT
-          </span>
+          <span className="text-[13px] font-medium text-ink/55">built</span>
         </div>
         <ProgressBar built={built} total={total} height={4} />
       </div>
@@ -204,7 +199,7 @@ export function RoadmapBoard({
           return (
             <div
               key={col.status}
-              className={`hud-panel flex flex-col p-3 ${DESKTOP_ORDER[col.status]} ${
+              className={`flex flex-col rounded-2xl bg-white/[0.03] p-3 ${DESKTOP_ORDER[col.status]} ${
                 dragOver === col.status ? "drag-over" : ""
               }`}
               onDragOver={(e) => {
@@ -225,17 +220,28 @@ export function RoadmapBoard({
               >
                 <span
                   className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: meta.color, boxShadow: `0 0 5px ${meta.color}` }}
+                  style={{ background: meta.color }}
                   aria-hidden
                 />
-                <span className="text-[10px] font-bold tracking-[0.24em] text-bright">
-                  {col.title}
-                </span>
-                <span className="hud-sublabel">{String(items.length).padStart(2, "0")}</span>
+                <span className="hud-label">{col.title}</span>
+                <span className="hud-sublabel">{items.length}</span>
                 <div className="hud-rule" />
-                <span className="text-[10px] text-ink/40 md:hidden">
-                  {isCollapsed ? "▸" : "▾"}
-                </span>
+                <svg
+                  viewBox="0 0 10 6"
+                  className={`h-1.5 w-2.5 text-ink/40 transition-transform md:hidden ${
+                    isCollapsed ? "-rotate-90" : ""
+                  }`}
+                  aria-hidden
+                >
+                  <path
+                    d="M1 1l4 4 4-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
 
               <div
@@ -253,24 +259,37 @@ export function RoadmapBoard({
                       setDragId(f.id);
                     }}
                     onDragEnd={() => setDragId(null)}
-                    className={`group flex min-h-[44px] items-center gap-1 border border-line bg-void/40 pl-1 pr-1 transition-colors hover:border-line-strong ${
+                    className={`group flex min-h-[44px] items-center gap-1 rounded-xl bg-white/5 pl-1 pr-1 transition-colors hover:bg-white/[0.08] ${
                       dragId === f.id ? "opacity-40" : ""
                     } ${justBuilt.has(f.id) ? "built-pop" : ""}`}
                   >
                     <button
                       onClick={() => cycle(f)}
                       className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center"
-                      title={`→ ${FEATURE_STATUS_META[CYCLE[f.status]].label}`}
+                      title={`Move to ${FEATURE_STATUS_META[CYCLE[f.status]].label}`}
                       aria-label={`cycle status, currently ${meta.label}`}
                     >
                       <span
-                        className="h-2 w-2 rounded-full border transition-transform group-hover:scale-125"
+                        className="flex h-[18px] w-[18px] items-center justify-center rounded-full border transition-transform group-hover:scale-110"
                         style={{
-                          borderColor: meta.color,
+                          borderColor:
+                            f.status === "planned" ? "rgb(255 255 255 / 0.25)" : meta.color,
                           background: f.status === "built" ? meta.color : "transparent",
-                          boxShadow: f.status !== "planned" ? `0 0 6px ${meta.color}` : "none",
                         }}
-                      />
+                      >
+                        {f.status === "built" && (
+                          <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden>
+                            <path
+                              d="M1.5 5.5 4 8l4.5-6"
+                              fill="none"
+                              stroke="#0a0a0f"
+                              strokeWidth="1.6"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
+                      </span>
                     </button>
                     <div className="min-w-0 flex-1 cursor-grab py-2 active:cursor-grabbing">
                       {editId === f.id ? (
@@ -284,7 +303,7 @@ export function RoadmapBoard({
                           }}
                           maxLength={300}
                           autoFocus
-                          className="w-full border-b border-line-strong bg-transparent text-[11.5px] leading-snug text-bright focus:outline-none"
+                          className="w-full border-b border-line-strong bg-transparent text-[13px] leading-snug text-bright focus:outline-none"
                         />
                       ) : (
                         <p
@@ -293,7 +312,7 @@ export function RoadmapBoard({
                             setEditTitle(f.title);
                           }}
                           title="double-click to edit"
-                          className={`text-[11.5px] leading-snug ${
+                          className={`text-[13px] leading-snug ${
                             f.status === "built" ? "text-ink/50" : "text-ink"
                           }`}
                         >
@@ -301,11 +320,11 @@ export function RoadmapBoard({
                         </p>
                       )}
                       {f.description && (
-                        <p className="mt-0.5 truncate text-[9.5px] text-ink/35">{f.description}</p>
+                        <p className="mt-0.5 truncate text-[12px] text-ink/40">{f.description}</p>
                       )}
                       {f.status === "built" && f.completedAt && (
-                        <p className="mt-0.5 text-[8.5px] tracking-[0.14em] text-ok/50">
-                          ✓ {new Date(f.completedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                        <p className="mt-0.5 text-[11px] text-ok/60">
+                          Done {new Date(f.completedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
                         </p>
                       )}
                     </div>
@@ -314,7 +333,7 @@ export function RoadmapBoard({
                         setEditId(f.id);
                         setEditTitle(f.title);
                       }}
-                      className="flex h-11 w-7 flex-none items-center justify-center text-[10px] text-ink/25 transition-colors hover:text-accent md:opacity-0 md:group-hover:opacity-100"
+                      className="flex h-11 w-7 flex-none items-center justify-center text-[12px] text-ink/25 transition-colors hover:text-accent md:opacity-0 md:group-hover:opacity-100"
                       aria-label="edit feature title"
                     >
                       ✎
@@ -328,7 +347,7 @@ export function RoadmapBoard({
                       }`}
                       aria-label="delete feature"
                     >
-                      {pendingDelete === f.id ? "SURE?" : "×"}
+                      {pendingDelete === f.id ? "Sure?" : "×"}
                     </button>
                   </div>
                 ))}
@@ -363,17 +382,17 @@ function AddInline({
         onAdd(v);
         setValue("");
       }}
-      className="flex items-center gap-2 border border-transparent px-1 focus-within:border-line"
+      className="flex items-center gap-2 rounded-xl px-2 transition-colors focus-within:bg-white/5"
     >
-      <span className="text-[11px]" style={{ color }} aria-hidden>
+      <span className="text-[13px]" style={{ color }} aria-hidden>
         +
       </span>
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="add"
+        placeholder="Add item"
         enterKeyHint="done"
-        className="min-h-[44px] w-full bg-transparent text-[11.5px] text-bright placeholder:text-ink/25 focus:outline-none"
+        className="min-h-[44px] w-full bg-transparent text-[13px] text-bright placeholder:text-ink/25 focus:outline-none"
       />
     </form>
   );

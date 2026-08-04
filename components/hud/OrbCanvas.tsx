@@ -112,9 +112,10 @@ export function OrbCanvas({
       smAmp += (amp - smAmp) * 0.15;
       const A = smAmp;
 
-      const lr = 160,
-        lg = 120,
-        lb = 250;
+      // Siri-like cool blue (systemBlue leaning cyan)
+      const lr = 96,
+        lg = 165,
+        lb = 255;
       const W = cv.width;
       const cx = W / 2;
       const cy = W / 2;
@@ -131,7 +132,7 @@ export function OrbCanvas({
       let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.5);
       g.addColorStop(0, `rgba(${lr - 20},${lg - 20},${lb - 15},${(0.22 + A * 0.14).toFixed(2)})`);
       g.addColorStop(0.45, `rgba(${lr - 50},${lg - 50},${lb - 50},.09)`);
-      g.addColorStop(1, "rgba(110,70,200,0)");
+      g.addColorStop(1, "rgba(10,132,255,0)");
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, W);
 
@@ -163,15 +164,15 @@ export function OrbCanvas({
         const bright = p[3] > 0.82;
         const rr = (bright ? 1.6 + depth * 2.2 : 0.7 + depth * 1.5) * (W / 1100);
         ctx.fillStyle = bright
-          ? `rgba(238,232,255,${(0.35 + depth * 0.6).toFixed(2)})`
+          ? `rgba(240,248,255,${(0.35 + depth * 0.6).toFixed(2)})`
           : `rgba(${lr + 10},${lg + 15},${lb},${(0.18 + depth * 0.5 + A * 0.1).toFixed(2)})`;
         ctx.beginPath();
         ctx.arc(p[0], p[1], rr, 0, 7);
         ctx.fill();
       }
       g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.4);
-      g.addColorStop(0, `rgba(240,235,255,${(0.3 + A * 0.3).toFixed(2)})`);
-      g.addColorStop(1, "rgba(240,235,255,0)");
+      g.addColorStop(0, `rgba(245,250,255,${(0.3 + A * 0.3).toFixed(2)})`);
+      g.addColorStop(1, "rgba(245,250,255,0)");
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(cx, cy, R * 0.4, 0, 7);

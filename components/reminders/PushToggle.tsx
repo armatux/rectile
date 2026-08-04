@@ -87,32 +87,30 @@ export function PushToggle({ vapidKey }: { vapidKey: string | null }) {
     }
   }
 
-  const btn =
-    "min-h-[42px] border border-line-strong px-3 text-[9px] font-bold tracking-[0.2em] transition-colors";
-
   if (state === "busy")
-    return <span className="text-[10px] tracking-[0.2em] text-ink/30">…</span>;
+    return <span className="text-[12px] text-ink/30">…</span>;
   if (state === "unsupported")
     return (
-      <p className="text-[10px] tracking-[0.1em] text-ink/40">
+      <p className="text-[12px] leading-relaxed text-ink/45">
         {iosHint
-          ? "ON IPHONE: SHARE → ADD TO HOME SCREEN, THEN OPEN THE APP FROM THERE"
-          : "PUSH NOT AVAILABLE HERE"}
+          ? "On iPhone: Share → Add to Home Screen, then open the app from there"
+          : "Push notifications aren't available here"}
       </p>
     );
   if (state === "denied")
     return (
-      <p className="text-[10px] tracking-[0.1em]" style={{ color: "var(--color-danger)" }}>
-        NOTIFICATIONS BLOCKED — ALLOW THEM IN BROWSER/SYSTEM SETTINGS
+      <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-danger)" }}>
+        Notifications blocked — allow them in browser or system settings
       </p>
     );
   return state === "on" ? (
-    <button onClick={disable} className={`${btn} text-accent hover:bg-accent/10`}>
-      ● ALERTS ON — THIS DEVICE · DISABLE
+    <button onClick={disable} className="btn-quiet self-start">
+      <span className="h-1.5 w-1.5 rounded-full bg-ok" aria-hidden />
+      Alerts on — disable
     </button>
   ) : (
-    <button onClick={enable} className={`${btn} text-ink/60 hover:text-accent hover:bg-accent/10`}>
-      ○ ENABLE ALERTS ON THIS DEVICE
+    <button onClick={enable} className="btn-tint self-start">
+      Enable alerts on this device
     </button>
   );
 }
