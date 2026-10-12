@@ -1,10 +1,11 @@
-import type { Feature, Project, Tag } from "@/db/schema";
+import type { Feature, Project, Tag, TicketStatus } from "@/db/schema";
 import {
   FEATURE_STATUS_META,
   PROJECT_STATUS_META,
   relTime,
   STALENESS_META,
   stalenessTier,
+  TICKET_STATUS_META,
 } from "@/lib/ui";
 
 export function SectionHeader({
@@ -25,6 +26,23 @@ export function SectionHeader({
 
 export function StatusBadge({ status }: { status: Project["status"] }) {
   const meta = PROJECT_STATUS_META[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 border border-line px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em]"
+      style={{ color: meta.color }}
+    >
+      <span
+        className="h-1 w-1 rounded-full"
+        style={{ background: meta.color, boxShadow: `0 0 5px ${meta.color}` }}
+        aria-hidden
+      />
+      {meta.label}
+    </span>
+  );
+}
+
+export function TicketStatusBadge({ status }: { status: TicketStatus }) {
+  const meta = TICKET_STATUS_META[status];
   return (
     <span
       className="inline-flex items-center gap-1.5 border border-line px-2 py-0.5 text-[9px] font-semibold tracking-[0.2em]"
