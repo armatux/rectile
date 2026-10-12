@@ -27,6 +27,7 @@ Docker Compose · [`mcp-handler`](https://www.npmjs.com/package/mcp-handler).
 | `/` | Dashboard grid: progress bar (built/total), status, tags, next action, staleness indicator, filters (status/tag/sort) + global search |
 | `/p/[slug]` | Project detail: 3-column roadmap (drag between columns on desktop/iPad, one-tap status cycle on mobile, inline add), big progress header, markdown log with pinned quick-capture, links, tags, status/priority controls |
 | `/stale` | All non-done projects, least recently touched first |
+| `/tickets` | Vestige orchestrator tickets grouped by status (filter by owner agent); `/tickets/[key]` shows fields, event timeline, attachments, a comment box and owner-only Approve / Request changes / Cancel (confirm dialog) |
 | `/search?q=` | Postgres full-text search across projects, features, log entries |
 
 ## Development
@@ -47,7 +48,8 @@ npm run db:seed          # 3 example projects
 API_TOKEN=$(openssl rand -hex 32) npm run dev
 ```
 
-Tests (auth middleware always runs; the CRUD suite needs `DATABASE_URL`):
+Tests (auth + ticket-guard suites always run; the CRUD and tickets route
+suites need `DATABASE_URL`):
 
 ```bash
 DATABASE_URL='postgres://rectile:rectile@localhost:5433/rectile' npm test
@@ -116,9 +118,10 @@ a 401. Never mount anything under `/api/*` that skips that check.
 
 ## REST API (`/api/v1/*`)
 
-All requests need `Authorization: Bearer <API_TOKEN>`. JSON in/out.
-Errors: `400` validation (with `issues[]`), `401` bad token, `404` missing,
-`409` conflict, `500` server.
+All requests need `Authorization: Bearer <API_TOKEN>` (or a per-actor token,
+below). JSON in/out. Errors: `400` validation (with `issues[]`), `401` bad
+token, `403` forbidden for this actor, `404` missing, `409` conflict, `500`
+server.
 
 | Method | Path | Notes |
 | --- | --- | --- |
@@ -144,12 +147,71 @@ curl -s -X POST -H "Authorization: Bearer $API_TOKEN" -H 'Content-Type: applicat
   https://armadax.xyz/api/v1/projects/my-project/logs
 ```
 
+## Actors, tokens and tickets (Vestige orchestrator)
+
+rectile is the source of truth for the Vestige agent orchestrator, which
+polls and writes tickets with **per-actor bearer tokens**. Actors: `human`,
+`orchestrator`, `code`, `visual`. `API_TOKEN` keeps working everywhere as
+`human`.
+
+```bash
+npm run token:issue -- orchestrator "vestige orchestrator"   # prints rt_… once
+npm run token:revoke -- 3
+```
+
+Only the SHA-256 of a token is stored. The scripts need `DATABASE_URL` (or
+the `POSTGRES_*` vars) pointing at the database; the production image has
+no `tsx`, so on the server use the human-only API instead:
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"actor":"code","name":"code agent"}' https://armadax.xyz/api/v1/tokens
+```
+
+**How the actor reaches the handlers.** `middleware.ts` runs on the Node.js
+runtime (stable in Next 15.5), resolves the bearer to an actor (env token →
+`human`, `rt_…` → hashed lookup in `api_tokens`, `last_used_at` stamped at
+most once a minute) and forwards it as `x-rectile-actor` /
+`x-rectile-token-name` request headers plus an HMAC (keyed with
+`API_TOKEN`) in `x-rectile-actor-sig`. Client-supplied copies are always
+overwritten, and handlers verify the HMAC, so a request that somehow skipped
+the middleware fails closed (401).
+
+**Permissions.** `code`/`visual` may create tickets (triage only), add
+`comment|question|handoff` events and attachments, and read everything; they
+may not PATCH tickets, and outside the ticket endpoints they are read-only
+(their writes to projects/logs/kv are refused with 403 — log markdown
+renders unsanitized in the owner's browser). `orchestrator` may patch any
+field and add any event type except `approval|rejection`, but cannot set
+`changes_requested`, `approved` or `cancelled`. `human` may do everything.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/v1/whoami` | `{actor, tokenName}` |
+| GET/POST | `/api/v1/tokens` | human only; POST `{actor, name}` → `201 {token, rawToken}` (raw value shown once); GET never returns hashes |
+| DELETE | `/api/v1/tokens/:id` | human only; revokes (keeps the row) |
+| GET | `/api/v1/tickets?since_seq=&status=&owner=&updated_since=&limit=` | `{tickets, maxSeq}` ordered by `seq`; `since_seq` exclusive; limit 1–500 (200). Use `maxSeq` as the next `since_seq` |
+| POST | `/api/v1/tickets` | `{title, ownerAgent, description?, kind?, source?, priority?, acceptanceCriteria?, touchedPaths?, linkedContracts?, model?, effort?, mode?, status?, projectSlug?}` → `201 {ticket}` |
+| GET | `/api/v1/tickets/:key` | `{ticket, events, attachments}` |
+| PATCH | `/api/v1/tickets/:key` | must include `version`; stale → `409 {error, ticket}`. Status changes write `status_change {from,to}`; `approved`/`changes_requested` also write `approval`/`rejection` with the optional `note` |
+| GET/POST | `/api/v1/tickets/:key/events` | GET `?after_id=` → `{events}`; POST `{type, body, data?}` → `201 {event}` |
+| POST | `/api/v1/tickets/:key/attachments` | `{label, url, sha256, contentType?, sizeBytes?}` → `201 {attachment}` |
+| GET | `/api/v1/ticket-events?after_id=&limit=` | global feed `{events, maxId}`, each with `ticketKey`; limit 1–1000 (200) |
+
+Every ticket write (and every event/attachment added to a ticket) takes the
+next value of the global `ticket_change_seq`. Ticket writes are serialized
+by a transaction-scoped advisory lock, so `seq` and event ids become
+visible in order — a poller can never miss a row below a cursor it has seen.
+
 ## MCP server (`/api/mcp`)
 
 Streamable-HTTP MCP endpoint exposing:
 `list_projects` · `get_project` · `create_project` · `update_project` ·
-`add_log_entry` · `add_feature` · `update_feature_status` · `search`.
-Same bearer token as the REST API (the middleware covers `/api/mcp` too).
+`add_log_entry` · `add_feature` · `update_feature_status` · `search` ·
+`list_tickets` · `get_ticket` · `create_ticket` · `comment_ticket`.
+Same bearer tokens as the REST API (the middleware covers `/api/mcp` too);
+tools act as the token's actor (`create_ticket` is triage-only unless the
+caller is `human`; agent tokens cannot use the project-writing tools).
 
 **Claude Code**
 

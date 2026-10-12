@@ -15,6 +15,7 @@ services:
       POSTGRES_DB: rectile
       API_TOKEN: ${API_TOKEN:?set API_TOKEN in .env}
       RECTILE_SEED_DEMO: ${RECTILE_SEED_DEMO:-0}
+      TICKET_KEY_PREFIX: ${TICKET_KEY_PREFIX:-VC}
     ports:
       # cloudflared on the same host connects to 127.0.0.1:3000;
       # widen to "3000:3000" if the tunnel runs elsewhere on the LAN
