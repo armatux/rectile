@@ -2,21 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z, ZodError } from "zod";
 import type { Feature } from "@/db/schema";
 import {
   addFeature,
   addLink,
   addLogEntry,
+  ConflictError,
   createProject,
   deleteFeature,
   deleteLink,
   deleteLogEntry,
   deleteProject,
+  ForbiddenError,
+  NotFoundError,
   reorderFeatures,
   setProjectTags,
   updateFeature,
   updateProject,
 } from "@/lib/repo";
+import { addTicketEvent, updateTicket } from "@/lib/tickets";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -142,4 +147,60 @@ export async function actionDeleteLink(slug: string, id: number) {
   await deleteLink(id);
   revalidateProject(slug);
   return { ok: true as const };
+}
+
+/* ---------------------------------- tickets --------------------------------- */
+
+// The browser UI sits behind Cloudflare Access, so ticket actions act as
+// the owner ("human"). Expected failures come back as values so the client
+// can show them (thrown errors are redacted in production builds).
+
+export type TicketActionResult = { ok: true } | { ok: false; error: string };
+
+const ticketDecisionSchema = z.object({
+  status: z.enum(["approved", "changes_requested", "cancelled"]),
+  version: z.number().int().min(1),
+  note: z.string().trim().max(20_000).optional(),
+});
+
+async function ticketAction(
+  key: string,
+  run: () => Promise<unknown>,
+): Promise<TicketActionResult> {
+  try {
+    await run();
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return { ok: false, error: err.issues[0]?.message ?? "invalid input" };
+    }
+    if (
+      err instanceof ConflictError ||
+      err instanceof ForbiddenError ||
+      err instanceof NotFoundError
+    ) {
+      return { ok: false, error: err.message };
+    }
+    throw err;
+  }
+  revalidatePath("/tickets");
+  revalidatePath(`/tickets/${key}`);
+  return { ok: true };
+}
+
+export async function actionCommentTicket(key: string, body: string) {
+  return ticketAction(key, async () => {
+    const text = z.string().trim().min(1).max(100_000).parse(body);
+    await addTicketEvent("human", key, { type: "comment", body: text });
+  });
+}
+
+/** Approve / request changes / cancel — `version` is the one the page showed. */
+export async function actionDecideTicket(
+  key: string,
+  decision: { status: string; version: number; note?: string },
+) {
+  return ticketAction(key, async () => {
+    const { status, version, note } = ticketDecisionSchema.parse(decision);
+    await updateTicket("human", key, { status, version, note: note || undefined });
+  });
 }
