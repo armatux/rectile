@@ -24,7 +24,16 @@ import type {
 } from "./validators";
 
 export class NotFoundError extends Error {}
-export class ConflictError extends Error {}
+export class ForbiddenError extends Error {}
+/** `details` are merged into the 409 body (e.g. the current ticket). */
+export class ConflictError extends Error {
+  constructor(
+    message: string,
+    readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+  }
+}
 
 const now = () => new Date();
 
