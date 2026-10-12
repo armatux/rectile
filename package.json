@@ -10,6 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "token:issue": "tsx scripts/token-issue.ts",
+    "token:revoke": "tsx scripts/token-revoke.ts",
     "test": "vitest run"
   },
   "dependencies": {

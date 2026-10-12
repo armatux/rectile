@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  actorMayRequest,
+  resolveBearer,
+  stampActorHeaders,
+  type ActorIdentity,
+} from "@/lib/actor";
 
 /**
  * Bearer-token gate for EVERYTHING under /api/*, including /api/mcp.
@@ -7,20 +13,17 @@ import { NextRequest, NextResponse } from "next/server";
  * this middleware is the only guard on the API paths, which are excluded
  * from Access so Claude can reach them. Never mount a route under /api
  * that should skip this check.
+ *
+ * Accepts the env API_TOKEN (actor `human`) or an unrevoked per-actor
+ * `rt_` token from the api_tokens table, and hands the resolved actor to
+ * the route handlers as signed request headers (see lib/actor.ts). Runs on
+ * the Node.js runtime (stable since Next 15.5) so it can reach Postgres.
  */
-export const config = { matcher: "/api/:path*" };
+export const config = { matcher: "/api/:path*", runtime: "nodejs" };
 
-async function sha256(data: string): Promise<Uint8Array> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
-  return new Uint8Array(buf);
-}
-
-/** Constant-time comparison via fixed-length digests (edge-runtime safe). */
-async function tokensMatch(a: string, b: string): Promise<boolean> {
-  const [da, db] = await Promise.all([sha256(a), sha256(b)]);
-  let diff = 0;
-  for (let i = 0; i < da.length; i++) diff |= da[i] ^ db[i];
-  return diff === 0;
+async function lookupToken(tokenHash: string) {
+  const { findActiveToken } = await import("@/lib/tokens");
+  return findActiveToken(tokenHash);
 }
 
 export async function middleware(req: NextRequest) {
@@ -33,11 +36,33 @@ export async function middleware(req: NextRequest) {
   }
   const header = req.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
-  if (!match || !(await tokensMatch(match[1].trim(), expected))) {
+  let identity: ActorIdentity | null = null;
+  if (match) {
+    try {
+      identity = await resolveBearer(match[1].trim(), expected, lookupToken);
+    } catch (err) {
+      // never log the presented token — only why the lookup failed
+      console.error("[auth] token lookup failed:", err instanceof Error ? err.message : err);
+      return NextResponse.json(
+        { error: "token store unavailable" },
+        { status: 503 },
+      );
+    }
+  }
+  if (!identity) {
     return NextResponse.json(
       { error: "unauthorized: missing or invalid bearer token" },
       { status: 401, headers: { "WWW-Authenticate": "Bearer" } },
     );
   }
-  return NextResponse.next();
+  const { pathname } = req.nextUrl;
+  if (!actorMayRequest(identity.actor, req.method, pathname)) {
+    return NextResponse.json(
+      { error: `forbidden: ${identity.actor} may not ${req.method} ${pathname}` },
+      { status: 403 },
+    );
+  }
+  const headers = new Headers(req.headers);
+  stampActorHeaders(headers, identity, expected);
+  return NextResponse.next({ request: { headers } });
 }

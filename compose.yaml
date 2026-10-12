@@ -15,6 +15,7 @@ services:
       POSTGRES_DB: rectile
       API_TOKEN: ${API_TOKEN:?set API_TOKEN in .env}
       RECTILE_SEED_DEMO: ${RECTILE_SEED_DEMO:-0}
+      TICKET_KEY_PREFIX: ${TICKET_KEY_PREFIX:-VC}
       # web push + daily digest (optional — push disabled when unset)
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}

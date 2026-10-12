@@ -109,6 +109,7 @@ export function TopBar() {
         <nav className="flex items-center">
           <NavLink href="/" label="Home" />
           <NavLink href="/stale" label="Stale" />
+          <NavLink href="/tickets" label="Tickets" />
           <NavLink href="/cpptutor" label="Tutor" />
           <NavLink href="/calendar" label="Calendar" />
           <NavLink href="/reminders" label="Reminders" />
